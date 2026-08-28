@@ -1,7 +1,5 @@
 package com.verisure.backend.entity;
 
-
-
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
@@ -61,5 +59,4 @@ public class User {
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     private UserStatus status;
-
 }
