@@ -56,5 +56,11 @@ public class Partner {
     @OneToMany(mappedBy = "partner")
     private List<User> users;
 
+    @JsonIgnore
+    @OneToMany(mappedBy = "partner")
+    private List<Activity> activities;
 
+    @JsonIgnore
+    @OneToMany(mappedBy = "partner")
+    private List<Proposal> proposals;
 }
