@@ -1,8 +1,11 @@
 package com.verisure.backend.entity;
 
+import java.util.List;
+
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.verisure.backend.entity.enums.Organization;
 import com.verisure.backend.entity.enums.Role;
 import com.verisure.backend.entity.enums.UserStatus;
@@ -17,6 +20,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -56,7 +60,23 @@ public class User {
     @JoinColumn(name = "parter_id", nullable = true, referencedColumnName = "id")
     private Partner partner;
     
-    @Column(nullable = false)
+    @Column(nullable = false, length = 20)
     @Enumerated(EnumType.STRING)
     private UserStatus status;
-}
+
+    @JsonIgnore
+    @OneToMany(mappedBy = "user")
+    private List<Registration> registrations;
+
+    @JsonIgnore
+    @OneToMany(mappedBy = "decidedBy")
+    private List<Registration> decidedRegistrations; 
+
+    @JsonIgnore
+@OneToMany(mappedBy = "createdBy")
+private List<Activity> activitiesCreated;
+
+@JsonIgnore
+@OneToMany(mappedBy = "user")
+private List<Favorite> favorites; 
+}   
