@@ -6,7 +6,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.verisure.backend.entity.Registration;
 import com.verisure.backend.entity.enums.RegistrationStatus;
-import com.verisure.backend.repository.projection.ClosedParticipationView;
 
 public interface RegistrationRepository extends JpaRepository<Registration, Long>{
 
@@ -15,6 +14,7 @@ public interface RegistrationRepository extends JpaRepository<Registration, Long
     List<Registration> findByActivityIdAndStatusOrderByQueuePosition(
             Long activityId, RegistrationStatus status);
 
-    List<ClosedParticipationView> findClosedForDashboard(Integer year, String line);
+    // findClosedForDashboard vive en ParticipationClosureRepository: la consulta
+    // arranca en ParticipationClosure, que es de donde salen las horas reales.
 
 }
