@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.verisure.backend.entity.ParticipationClosure;
+import com.verisure.backend.repository.projection.ActivityClosureAggregates;
 import com.verisure.backend.repository.projection.ClosedParticipationView;
 
 public interface ParticipationClosureRepository extends JpaRepository<ParticipationClosure, Long> {
@@ -38,5 +39,27 @@ public interface ParticipationClosureRepository extends JpaRepository<Participat
             """)
     List<ClosedParticipationView> findClosedForDashboard(@Param("year") Integer year,
                                                          @Param("line") String line);
+
+    /**
+     * Totales de participación de una actividad, para la pantalla de cierre de
+     * la Fundación.
+     *
+     * <p>Va aquí y no en un servicio para que {@code ActivityClosureService} no
+     * tenga que llamar a {@code ParticipationClosureService}: los dos cierres
+     * son dominios separados y solo comparten datos, no lógica.
+     *
+     * <p>El {@code coalesce} evita devolver {@code null} cuando todavía no ha
+     * cerrado nadie, que es el estado normal de una actividad recién terminada.
+     */
+    @Query("""
+            select new com.verisure.backend.repository.projection.ActivityClosureAggregates(
+                coalesce(sum(pc.actualHours), 0L),
+                count(pc),
+                coalesce(sum(case when pc.evidenceUrl is not null then 1L else 0L end), 0L))
+            from ParticipationClosure pc
+              join pc.registration r
+            where r.activity.id = :activityId
+            """)
+    ActivityClosureAggregates findAggregatesByActivityId(@Param("activityId") Long activityId);
 
 }
