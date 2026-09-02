@@ -41,8 +41,9 @@ public class Proposal {
     @Column(name="suggested_line", length=60)
     private String suggestedLine;
 
-    @Column(length=120)
-    private String scope;
+    /** Número de personas beneficiarias que alcanzaría la propuesta. */
+    @Column
+    private Integer scope;
 
     @Column(nullable = false, length = 20)
     @Enumerated(EnumType.STRING)
