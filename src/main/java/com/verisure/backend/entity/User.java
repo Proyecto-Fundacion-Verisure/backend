@@ -57,7 +57,7 @@ public class User {
     private String department;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "parter_id", nullable = true, referencedColumnName = "id")
+    @JoinColumn(name = "partner_id", nullable = true, referencedColumnName = "id")
     private Partner partner;
     
     @Column(nullable = false, length = 20)

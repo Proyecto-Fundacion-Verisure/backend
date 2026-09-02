@@ -74,7 +74,7 @@ private ActivityStatus status;
 private String reviewNote;
 
 @ManyToOne(fetch = FetchType.LAZY)
-@JoinColumn(name = "parter_id", nullable = true, referencedColumnName = "id")
+@JoinColumn(name = "partner_id", nullable = true, referencedColumnName = "id")
 private Partner partner;
 
 @ManyToOne(fetch = FetchType.LAZY)
