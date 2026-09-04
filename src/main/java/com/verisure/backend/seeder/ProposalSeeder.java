@@ -52,40 +52,40 @@ public class ProposalSeeder implements CommandLineRunner {
             return; // idempotente: no duplica al reiniciar
         }
 
-        List<Partner> orgs = partnerRepository.findAll();
-        Activity limpiezaDePlayas = buscarActividad("Limpieza de playas");
-        Activity bancoDeAlimentos = buscarActividad("Reparto del banco de alimentos");
+        List<Partner> partners = partnerRepository.findAll();
+        Activity beachCleanup = findActivityByTitle("Limpieza de playas");
+        Activity foodBank = findActivityByTitle("Reparto del banco de alimentos");
 
         proposalRepository.saveAll(List.of(
                 // Propuesta pública: la envía una organización que todavía no tiene cuenta.
-                prop("Acompañamiento telefónico semanal a personas mayores que viven solas.",
+                proposal("Acompañamiento telefónico semanal a personas mayores que viven solas.",
                         12, "desoledad", 60,
                         ProposalStatus.NEW, null, null, 5),
 
-                prop("Apoyo escolar en centros de acogida durante el curso.",
+                proposal("Apoyo escolar en centros de acogida durante el curso.",
                         20, "educar", 120,
-                        ProposalStatus.NEW, orgs.get(6), null, 8),
+                        ProposalStatus.NEW, partners.get(6), null, 8),
 
-                prop("Jornada de recogida de residuos en las playas del litoral.",
-                        25, "voluntariado", 300,
-                        ProposalStatus.ACCEPTED, orgs.get(5), limpiezaDePlayas, 12),
+                proposal("Jornada de recogida de residuos en las playas del litoral.",
+                        25, "medioambiente", 300,
+                        ProposalStatus.ACCEPTED, partners.get(5), beachCleanup, 12),
 
-                prop("Clasificación y reparto de alimentos a familias vulnerables.",
-                        15, "voluntariado", 450,
-                        ProposalStatus.ACCEPTED, orgs.get(4), bancoDeAlimentos, 15),
+                proposal("Clasificación y reparto de alimentos a familias vulnerables.",
+                        15, "medioambiente", 450,
+                        ProposalStatus.ACCEPTED, partners.get(4), foodBank, 15),
 
-                prop("Programa de mediación entre iguales en institutos.",
+                proposal("Programa de mediación entre iguales en institutos.",
                         10, "acoso", 200,
-                        ProposalStatus.REJECTED, orgs.get(7), null, 18),
+                        ProposalStatus.REJECTED, partners.get(7), null, 18),
 
-                prop("Formación a familias sobre detección temprana del acoso.",
+                proposal("Formación a familias sobre detección temprana del acoso.",
                         8, "acoso", 90,
-                        ProposalStatus.REJECTED, orgs.get(3), null, 22)));
+                        ProposalStatus.REJECTED, partners.get(3), null, 22)));
     }
 
-    private Proposal prop(String description, int estimatedVolunteers, String suggestedLine,
+    private Proposal proposal(String description, int estimatedVolunteers, String suggestedLine,
                           Integer scope, ProposalStatus status, Partner partner,
-                          Activity activity, int diaDeEnero) {
+                          Activity activity, int dayOfJanuary) {
         Proposal p = new Proposal();
         p.setDescription(description);
         p.setEstimatedVolunteers(estimatedVolunteers);
@@ -94,20 +94,20 @@ public class ProposalSeeder implements CommandLineRunner {
         p.setStatus(status);
         p.setPartner(partner);
         p.setActivity(activity);
-        p.setConsentAt(instante(diaDeEnero));
-        p.setCreatedAt(instante(diaDeEnero));
+        p.setConsentAt(instantOf(dayOfJanuary));
+        p.setCreatedAt(instantOf(dayOfJanuary));
         return p;
     }
 
-    private Activity buscarActividad(String titulo) {
+    private Activity findActivityByTitle(String title) {
         return activityRepository.findAll().stream()
-                .filter(a -> a.getTitle().equals(titulo))
+                .filter(a -> a.getTitle().equals(title))
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException(
-                        "ActivitySeeder no dejó sembrada la actividad: " + titulo));
+                        "ActivitySeeder no dejó sembrada la actividad: " + title));
     }
 
-    private Instant instante(int diaDeEnero) {
-        return LocalDate.of(2026, 1, diaDeEnero).atStartOfDay().toInstant(ZoneOffset.UTC);
+    private Instant instantOf(int dayOfJanuary) {
+        return LocalDate.of(2026, 1, dayOfJanuary).atStartOfDay().toInstant(ZoneOffset.UTC);
     }
 }

@@ -11,11 +11,13 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
@@ -102,6 +104,29 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> handleMediaType(WebRequest request) {
         return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE).body(ApiError.of(
                 "UNSUPPORTED_MEDIA_TYPE", "Tipo de archivo no admitido", path(request)));
+    }
+
+    /**
+     * Una URL que no corresponde a ningún endpoint.
+     *
+     * <p>Sin esto la recoge la red de seguridad de abajo y frontend recibe un
+     * <b>500</b> por una simple errata en la ruta, con la traza registrada como
+     * si fuera un fallo del servidor.
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ApiError> handleNoResource(WebRequest request) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiError.of(
+                "NOT_FOUND", "El recurso solicitado no existe", path(request)));
+    }
+
+    /**
+     * Método HTTP que el endpoint no admite: {@code DELETE} sobre una ruta que
+     * solo tiene {@code GET}, por ejemplo.
+     */
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ApiError> handleMethodNotAllowed(WebRequest request) {
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(ApiError.of(
+                "METHOD_NOT_ALLOWED", "El método no está permitido en esta ruta", path(request)));
     }
 
     /**

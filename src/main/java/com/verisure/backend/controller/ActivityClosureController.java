@@ -28,9 +28,14 @@ import lombok.RequiredArgsConstructor;
  * transacción y devuelve; si no ha lanzado, el controlador manda el correo. Así
  * una operación que se deshace no avisa a nadie. Ver la regla completa en
  * {@link NotificationService}.
+ *
+ * <p><b>Todas sus rutas cuelgan de {@code /api/admin/}</b>, y no de
+ * {@code /api/activities/}, para que la única regla de la cadena de seguridad que
+ * necesiten sea la de {@code ADMIN}. Antes compartían prefijo con el catálogo, y
+ * eso obliga a declarar excepciones que es fácil olvidar al añadir un endpoint.
  */
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/admin")
 @RequiredArgsConstructor
 public class ActivityClosureController {
 
@@ -38,7 +43,7 @@ public class ActivityClosureController {
     private final NotificationService notificationService;
 
     /** Cola de actividades finalizadas pendientes de cerrar. */
-    @GetMapping("/admin/activities/pending-closure")
+    @GetMapping("/activities/pending-closure")
     public Page<ActivityClosureRow> findPendingClosure(Pageable pageable) {
         return activityClosureService.findPendingClosure(pageable);
     }

@@ -62,9 +62,9 @@ public class PartnerSeeder implements CommandLineRunner {
                         "contacto@manosunidas.org", "954889900", PartnerStatus.REJECTED, 8)));
     }
 
-    /** {@code diaDeEnero} escalona los {@code createdAt} sin usar aleatoriedad. */
+    /** {@code dayOfJanuary} escalona los {@code createdAt} sin usar aleatoriedad. */
     private Partner partner(String name, String cif, String contactName,
-                            String email, String phone, PartnerStatus status, int diaDeEnero) {
+                            String email, String phone, PartnerStatus status, int dayOfJanuary) {
         Partner p = new Partner();
         p.setName(name);
         p.setCif(cif);
@@ -72,11 +72,11 @@ public class PartnerSeeder implements CommandLineRunner {
         p.setEmail(email);
         p.setPhone(phone);
         p.setStatus(status);
-        p.setCreatedAt(instante(diaDeEnero));
+        p.setCreatedAt(instantOf(dayOfJanuary));
         return p;
     }
 
-    private Instant instante(int diaDeEnero) {
-        return LocalDate.of(2026, 1, diaDeEnero).atStartOfDay().toInstant(ZoneOffset.UTC);
+    private Instant instantOf(int dayOfJanuary) {
+        return LocalDate.of(2026, 1, dayOfJanuary).atStartOfDay().toInstant(ZoneOffset.UTC);
     }
 }
