@@ -23,10 +23,10 @@ import com.verisure.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 
 /**
- * Siembra 10 inscripciones con los <b>seis</b> {@code RegistrationStatus}
+ * Siembra 10 registrations con los <b>seis</b> {@code RegistrationStatus}
  * representados.
  *
- * <p>Es el seeder del que depende la demo entera: las tres inscripciones en
+ * <p>Es el seeder del que depende la demo entera: las tres registrations en
  * {@code CLOSED} de «Acompañamiento a mayores» son <b>las únicas filas que ve el
  * dashboard</b>, porque {@code findClosedForDashboard} filtra por ese estado. Si
  * alguien las cambia, el dashboard sale vacío y nada lo avisa.
@@ -53,7 +53,7 @@ public class RegistrationSeeder implements CommandLineRunner {
             return; // idempotente: no duplica al reiniciar
         }
 
-        List<User> empleadas = userRepository.findAll().stream()
+        List<User> employees = userRepository.findAll().stream()
                 .filter(u -> u.getRole() == Role.EMPLOYEE)
                 .toList();
         User admin = userRepository.findAll().stream()
@@ -61,72 +61,72 @@ public class RegistrationSeeder implements CommandLineRunner {
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException("UserSeeder no dejó ninguna ADMIN"));
 
-        Activity acompanamiento = actividad("Acompañamiento a mayores");
-        Activity alfabetizacion = actividad("Alfabetización digital");
-        Activity residencias    = actividad("Visitas a residencias");
-        Activity playas         = actividad("Limpieza de playas");
-        Activity autoproteccion = actividad("Autoprotección para adolescentes");
+        Activity elderlySupport = activityByTitle("Acompañamiento a mayores");
+        Activity digitalLiteracy = activityByTitle("Alfabetización digital");
+        Activity careHomeVisits    = activityByTitle("Visitas a residencias");
+        Activity beachCleanup         = activityByTitle("Limpieza de playas");
+        Activity selfProtection = activityByTitle("Autoprotección para adolescentes");
 
-        List<Registration> inscripciones = new ArrayList<>();
+        List<Registration> registrations = new ArrayList<>();
 
         // 3 CLOSED · las únicas que alimentan el dashboard
         for (int i = 0; i < 3; i++) {
-            inscripciones.add(insc(acompanamiento, empleadas.get(i), RegistrationStatus.CLOSED,
+            registrations.add(registration(elderlySupport, employees.get(i), RegistrationStatus.CLOSED,
                     true, null, admin, LocalDate.of(2026, 2, 10)));
         }
 
         // 2 PENDING_CLOSURE · la cola de cierres de administración
         for (int i = 0; i < 2; i++) {
-            inscripciones.add(insc(alfabetizacion, empleadas.get(i), RegistrationStatus.PENDING_CLOSURE,
+            registrations.add(registration(digitalLiteracy, employees.get(i), RegistrationStatus.PENDING_CLOSURE,
                     true, null, admin, LocalDate.of(2026, 3, 15)));
         }
 
         // Actividad FULL: 2 confirmadas (= aforo) y 1 en cola
-        inscripciones.add(insc(residencias, empleadas.get(0), RegistrationStatus.CONFIRMED,
+        registrations.add(registration(careHomeVisits, employees.get(0), RegistrationStatus.CONFIRMED,
                 true, null, admin, LocalDate.now().minusDays(9)));
-        inscripciones.add(insc(residencias, empleadas.get(1), RegistrationStatus.CONFIRMED,
+        registrations.add(registration(careHomeVisits, employees.get(1), RegistrationStatus.CONFIRMED,
                 true, null, admin, LocalDate.now().minusDays(9)));
         // accepted = true aunque esté en cola: pasó por administración, pero no había hueco
-        inscripciones.add(insc(residencias, empleadas.get(2), RegistrationStatus.WAITLISTED,
+        registrations.add(registration(careHomeVisits, employees.get(2), RegistrationStatus.WAITLISTED,
                 true, 1, admin, LocalDate.now().minusDays(8)));
 
         // 1 REJECTED · rechazar no admite motivo, por contrato
-        inscripciones.add(insc(playas, empleadas.get(3), RegistrationStatus.REJECTED,
+        registrations.add(registration(beachCleanup, employees.get(3), RegistrationStatus.REJECTED,
                 false, null, admin, LocalDate.now().minusDays(3)));
 
         // 1 CANCELLED · como si la hubiera cancelado cancelAllForActivity
-        inscripciones.add(insc(autoproteccion, empleadas.get(4), RegistrationStatus.CANCELLED,
+        registrations.add(registration(selfProtection, employees.get(4), RegistrationStatus.CANCELLED,
                 true, null, admin, LocalDate.of(2026, 1, 28)));
 
-        registrationRepository.saveAll(inscripciones);
+        registrationRepository.saveAll(registrations);
     }
 
-    private Registration insc(Activity activity, User user, RegistrationStatus status,
+    private Registration registration(Activity activity, User user, RegistrationStatus status,
                               boolean accepted, Integer queuePosition, User decidedBy,
-                              LocalDate creada) {
+                              LocalDate createdOn) {
         Registration r = new Registration();
         r.setActivity(activity);
         r.setUser(user);
         r.setStatus(status);
         r.setAccepted(accepted);
         r.setQueuePosition(queuePosition);
-        r.setCreatedAt(instante(creada));
+        r.setCreatedAt(instantOf(createdOn));
         // Solo llevan decisor las que alguien decidió; una WAITLISTED sin revisar no lo tendría.
-        boolean decidida = status != RegistrationStatus.WAITLISTED || accepted;
-        r.setDecidedBy(decidida ? decidedBy : null);
-        r.setDecidedAt(decidida ? instante(creada.plusDays(1)) : null);
+        boolean decided = status != RegistrationStatus.WAITLISTED || accepted;
+        r.setDecidedBy(decided ? decidedBy : null);
+        r.setDecidedAt(decided ? instantOf(createdOn.plusDays(1)) : null);
         return r;
     }
 
-    private Activity actividad(String titulo) {
+    private Activity activityByTitle(String title) {
         return activityRepository.findAll().stream()
-                .filter(a -> a.getTitle().equals(titulo))
+                .filter(a -> a.getTitle().equals(title))
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException(
-                        "ActivitySeeder no dejó sembrada la actividad: " + titulo));
+                        "ActivitySeeder no dejó sembrada la actividad: " + title));
     }
 
-    private Instant instante(LocalDate fecha) {
-        return fecha.atStartOfDay().toInstant(ZoneOffset.UTC);
+    private Instant instantOf(LocalDate date) {
+        return date.atStartOfDay().toInstant(ZoneOffset.UTC);
     }
 }

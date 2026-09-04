@@ -35,3 +35,6 @@ build/
 
 # Claude Code
 .claude/
+
+# Archivos subidos en local (evidencias y portadas)
+/uploads/

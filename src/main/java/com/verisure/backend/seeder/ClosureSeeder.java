@@ -23,10 +23,10 @@ import com.verisure.backend.repository.RegistrationRepository;
 import lombok.RequiredArgsConstructor;
 
 /**
- * Siembra los <b>dos</b> cierres: 4 de participación y 2 de actividad.
+ * Siembra los <b>dos</b> closures: 4 de participación y 2 de actividad.
  *
  * <p>Las horas declaradas se separan a propósito de las previstas —una por
- * encima y otra por debajo— porque lo que la pantalla de cierre tiene que
+ * encima y otra por debajo— porque lo que la pantalla de participationClosure tiene que
  * enseñar es justamente el contraste entre previsto y reportado. Si todas
  * cuadraran, esa pantalla no demostraría nada.
  *
@@ -53,17 +53,17 @@ public class ClosureSeeder implements CommandLineRunner {
             return; // idempotente: no duplica al reiniciar
         }
 
-        List<Registration> cerradas = porEstado(RegistrationStatus.CLOSED);
-        List<Registration> pendientes = porEstado(RegistrationStatus.PENDING_CLOSURE);
+        List<Registration> closed = byStatus(RegistrationStatus.CLOSED);
+        List<Registration> pending = byStatus(RegistrationStatus.PENDING_CLOSURE);
 
-        List<ParticipationClosure> cierres = new ArrayList<>();
+        List<ParticipationClosure> closures = new ArrayList<>();
 
         // Las tres de «Acompañamiento a mayores», previsto 20 h.
-        int[] horas   = {20, 22, 18};
+        int[] hours   = {20, 22, 18};
         int[] ratings = {5, 4, 3};
-        for (int i = 0; i < cerradas.size(); i++) {
-            cierres.add(cierre(cerradas.get(i),
-                    horas[i % horas.length],
+        for (int i = 0; i < closed.size(); i++) {
+            closures.add(participationClosure(closed.get(i),
+                    hours[i % hours.length],
                     ratings[i % ratings.length],
                     "Experiencia muy positiva; repetiría el próximo trimestre.",
                     // Solo algunos suben evidencia, para que el recuento no sea trivial.
@@ -71,62 +71,62 @@ public class ClosureSeeder implements CommandLineRunner {
                     LocalDate.of(2026, 3, 30)));
         }
 
-        // Una sola de las dos pendientes: la administradora ve que aún falta gente.
-        if (!pendientes.isEmpty()) {
-            cierres.add(cierre(pendientes.get(0), 11, 4,
+        // Una sola de las dos pending: la administradora ve que aún falta gente.
+        if (!pending.isEmpty()) {
+            closures.add(participationClosure(pending.get(0), 11, 4,
                     "El taller se quedó algo corto de tiempo.",
                     null, LocalDate.of(2026, 4, 27)));
         }
 
-        participationClosureRepository.saveAll(cierres);
+        participationClosureRepository.saveAll(closures);
 
-        List<ActivityClosure> cierresDeActividad = new ArrayList<>();
-        if (!cerradas.isEmpty()) {
-            cierresDeActividad.add(cierreDeActividad(cerradas.get(0).getActivity(),
+        List<ActivityClosure> activityClosures = new ArrayList<>();
+        if (!closed.isEmpty()) {
+            activityClosures.add(activityClosure(closed.get(0).getActivity(),
                     ActivityClosureStatus.CLOSED, 4,
                     "Colaboración muy sólida. Las horas reportadas superan lo previsto.",
                     "Conviene cerrar el grupo de voluntariado dos semanas antes de empezar.",
                     LocalDate.of(2026, 4, 3)));
         }
-        if (!pendientes.isEmpty()) {
+        if (!pending.isEmpty()) {
             // A medio rellenar: es la pantalla principal de B1-04.
-            cierresDeActividad.add(cierreDeActividad(pendientes.get(0).getActivity(),
+            activityClosures.add(activityClosure(pending.get(0).getActivity(),
                     ActivityClosureStatus.DRAFT, 3,
                     "Pendiente de que cierren el resto de participantes.",
                     null, null));
         }
-        activityClosureRepository.saveAll(cierresDeActividad);
+        activityClosureRepository.saveAll(activityClosures);
     }
 
-    private List<Registration> porEstado(RegistrationStatus status) {
+    private List<Registration> byStatus(RegistrationStatus status) {
         return registrationRepository.findAll().stream()
                 .filter(r -> r.getStatus() == status)
                 .toList();
     }
 
-    private ParticipationClosure cierre(Registration registration, int actualHours, int rating,
-                                        String comment, String evidenceUrl, LocalDate enviado) {
+    private ParticipationClosure participationClosure(Registration registration, int actualHours, int rating,
+                                        String comment, String evidenceUrl, LocalDate submittedOn) {
         ParticipationClosure pc = new ParticipationClosure();
         pc.setRegistration(registration);
         pc.setActualHours(actualHours);
         pc.setRating(rating);
         pc.setComment(comment);
         pc.setEvidenceUrl(evidenceUrl);
-        pc.setSubmittedAt(enviado.atStartOfDay().toInstant(ZoneOffset.UTC));
+        pc.setSubmittedAt(submittedOn.atStartOfDay().toInstant(ZoneOffset.UTC));
         return pc;
     }
 
-    private ActivityClosure cierreDeActividad(Activity activity, ActivityClosureStatus status,
+    private ActivityClosure activityClosure(Activity activity, ActivityClosureStatus status,
                                               Integer collaborationRating, String closingNotes,
-                                              String lessonsLearned, LocalDate cerrado) {
+                                              String lessonsLearned, LocalDate closedOn) {
         ActivityClosure ac = new ActivityClosure();
         ac.setActivity(activity);
         ac.setStatus(status);
         ac.setCollaborationRating(collaborationRating);
         ac.setClosingNotes(closingNotes);
         ac.setLessonsLearned(lessonsLearned);
-        ac.setClosedAt(cerrado == null ? null
-                : cerrado.atStartOfDay().toInstant(ZoneOffset.UTC));
+        ac.setClosedAt(closedOn == null ? null
+                : closedOn.atStartOfDay().toInstant(ZoneOffset.UTC));
         return ac;
     }
 }

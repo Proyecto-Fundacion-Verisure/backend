@@ -34,7 +34,7 @@ import lombok.RequiredArgsConstructor;
  *
  * <p>Fechas mixtas: las pasadas son fijas de 2026, para que los agregados del
  * dashboard por año sean idénticos en las tres máquinas; las vivas son relativas
- * a hoy, para que siempre haya plazo de inscripción abierto.
+ * a today, para que siempre haya plazo de inscripción abierto.
  *
  * <p>Dueña: BE2 · Tarea: B2-01
  */
@@ -44,10 +44,12 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class ActivitySeeder implements CommandLineRunner {
 
-    private static final String IMG_DESOLEDAD    = "/images/01-desoledad-linea-de-accion.png";
-    private static final String IMG_EDUCAR       = "/images/02-educar-linea-de-accion.png";
-    private static final String IMG_ACOSO        = "/images/03-acoso-linea-de-accion.png";
-    private static final String IMG_VOLUNTARIADO = "/images/04-voluntariado-linea-de-accion.png";
+    private static final String IMG_DESOLEDAD     = "/images/01-desoledad-linea-de-accion.png";
+    private static final String IMG_EDUCAR        = "/images/02-educar-linea-de-accion.png";
+    private static final String IMG_ACOSO         = "/images/03-acoso-linea-de-accion.png";
+    // El archivo conserva el nombre antiguo: la imagen la sirve frontend y
+    // renombrarla desde aquí dejaría la portada rota hasta que ellos la cambien.
+    private static final String IMG_MEDIOAMBIENTE = "/images/04-voluntariado-linea-de-accion.png";
 
     private final ActivityRepository activityRepository;
     private final PartnerRepository partnerRepository;
@@ -59,95 +61,95 @@ public class ActivitySeeder implements CommandLineRunner {
             return; // idempotente: no duplica al reiniciar
         }
 
-        List<Partner> orgs = partnerRepository.findAll();
-        User admin = primeraConRol(Role.ADMIN);
-        // La actividad PENDING_APPROVAL la propone una entidad, no la Fundación.
-        User entidad = primeraConRol(Role.PARTNER);
+        List<Partner> partners = partnerRepository.findAll();
+        User admin = firstUserWithRole(Role.ADMIN);
+        // La actividad PENDING_APPROVAL la propone una partnerUser, no la Fundación.
+        User partnerUser = firstUserWithRole(Role.PARTNER);
 
-        LocalDate hoy = LocalDate.now();
-        List<Activity> actividades = new ArrayList<>();
+        LocalDate today = LocalDate.now();
+        List<Activity> activities = new ArrayList<>();
 
         // ── Pasadas · fechas fijas de 2026 ──────────────────────────────────────
         // La 1 es la que sostiene el dashboard: sus inscripciones acaban en CLOSED.
-        actividades.add(act("Acompañamiento a mayores",
+        activities.add(activity("Acompañamiento a mayores",
                 "Visitas semanales a personas mayores en situación de soledad no deseada.",
                 "desoledad", "PRESENCIAL", "Barcelona", 8, 20, IMG_DESOLEDAD,
                 ActivityStatus.FINISHED, LocalDate.of(2026, 3, 2), LocalDate.of(2026, 3, 27),
-                LocalDate.of(2026, 2, 20), orgs.get(0), admin));
+                LocalDate.of(2026, 2, 20), partners.get(0), admin));
 
-        actividades.add(act("Alfabetización digital",
+        activities.add(activity("Alfabetización digital",
                 "Talleres para que personas mayores aprendan a usar el móvil y la banca en línea.",
                 "desoledad", "MIXTO", "Madrid", 6, 12, IMG_DESOLEDAD,
                 ActivityStatus.FINISHED, LocalDate.of(2026, 4, 6), LocalDate.of(2026, 4, 24),
-                LocalDate.of(2026, 3, 25), orgs.get(1), admin));
+                LocalDate.of(2026, 3, 25), partners.get(1), admin));
 
-        actividades.add(act("Campaña contra el acoso escolar",
+        activities.add(activity("Campaña contra el acoso escolar",
                 "Sensibilización en centros educativos sobre el acoso entre iguales.",
                 "acoso", "PRESENCIAL", "Barcelona", 5, 10, IMG_ACOSO,
                 ActivityStatus.FINISHED, LocalDate.of(2026, 5, 4), LocalDate.of(2026, 5, 22),
-                LocalDate.of(2026, 4, 22), orgs.get(3), admin));
+                LocalDate.of(2026, 4, 22), partners.get(3), admin));
 
-        actividades.add(act("Autoprotección para adolescentes",
+        activities.add(activity("Autoprotección para adolescentes",
                 "Taller de autoprotección y uso seguro de redes sociales.",
                 "acoso", "MIXTO", "Sevilla", 6, 10, IMG_ACOSO,
                 ActivityStatus.CANCELLED, LocalDate.of(2026, 2, 9), LocalDate.of(2026, 2, 20),
-                LocalDate.of(2026, 1, 30), orgs.get(3), admin));
+                LocalDate.of(2026, 1, 30), partners.get(3), admin));
 
-        // ── Vivas · fechas relativas a hoy ──────────────────────────────────────
-        actividades.add(act("Refuerzo escolar",
+        // ── Vivas · fechas relativas a today ──────────────────────────────────────
+        activities.add(activity("Refuerzo escolar",
                 "Apoyo escolar para menores en riesgo de exclusión.",
                 "educar", "PRESENCIAL", "Madrid", 6, 30, IMG_EDUCAR,
-                ActivityStatus.IN_PROGRESS, hoy.minusDays(10), hoy.plusDays(20),
-                hoy.minusDays(20), orgs.get(2), admin));
+                ActivityStatus.IN_PROGRESS, today.minusDays(10), today.plusDays(20),
+                today.minusDays(20), partners.get(2), admin));
 
-        actividades.add(act("Mentoría online para jóvenes",
+        activities.add(activity("Mentoría online para jóvenes",
                 "Acompañamiento individual en la búsqueda del primer empleo.",
-                "educar", "ONLINE", "Online", 4, 16, IMG_EDUCAR,
-                ActivityStatus.IN_PROGRESS, hoy.minusDays(5), hoy.plusDays(25),
-                hoy.minusDays(15), orgs.get(2), admin));
+                "educar", "ONLINE", null, 4, 16, IMG_EDUCAR,
+                ActivityStatus.IN_PROGRESS, today.minusDays(5), today.plusDays(25),
+                today.minusDays(15), partners.get(2), admin));
 
-        actividades.add(act("Limpieza de playas",
+        activities.add(activity("Limpieza de playas",
                 "Jornada de recogida de residuos en el litoral.",
-                "voluntariado", "PRESENCIAL", "Valencia", 8, 6, IMG_VOLUNTARIADO,
-                ActivityStatus.PUBLISHED, hoy.plusDays(20), hoy.plusDays(20),
-                hoy.plusDays(12), orgs.get(5), admin));
+                "medioambiente", "PRESENCIAL", "Valencia", 8, 6, IMG_MEDIOAMBIENTE,
+                ActivityStatus.PUBLISHED, today.plusDays(20), today.plusDays(20),
+                today.plusDays(12), partners.get(5), admin));
 
-        actividades.add(act("Reparto del banco de alimentos",
+        activities.add(activity("Reparto del banco de alimentos",
                 "Clasificación y reparto de alimentos a familias en situación vulnerable.",
-                "voluntariado", "PRESENCIAL", "Valencia", 6, 8, IMG_VOLUNTARIADO,
-                ActivityStatus.PUBLISHED, hoy.plusDays(30), hoy.plusDays(31),
-                hoy.plusDays(21), orgs.get(4), admin));
+                "medioambiente", "PRESENCIAL", "Valencia", 6, 8, IMG_MEDIOAMBIENTE,
+                ActivityStatus.PUBLISHED, today.plusDays(30), today.plusDays(31),
+                today.plusDays(21), partners.get(4), admin));
 
-        actividades.add(act("Charlas de prevención",
+        activities.add(activity("Charlas de prevención",
                 "Charlas en institutos sobre convivencia y prevención del acoso.",
                 "acoso", "MIXTO", "Barcelona", 5, 4, IMG_ACOSO,
-                ActivityStatus.PUBLISHED, hoy.plusDays(40), hoy.plusDays(40),
-                hoy.plusDays(30), orgs.get(3), admin));
+                ActivityStatus.PUBLISHED, today.plusDays(40), today.plusDays(40),
+                today.plusDays(30), partners.get(3), admin));
 
         // Aforo 2 para que con ocho empleadas se pueda llenar de verdad y quede cola.
-        actividades.add(act("Visitas a residencias",
+        activities.add(activity("Visitas a residencias",
                 "Visitas de acompañamiento en residencias de mayores.",
                 "desoledad", "PRESENCIAL", "Barcelona", 2, 12, IMG_DESOLEDAD,
-                ActivityStatus.FULL, hoy.plusDays(15), hoy.plusDays(45),
-                hoy.plusDays(7), orgs.get(0), admin));
+                ActivityStatus.FULL, today.plusDays(15), today.plusDays(45),
+                today.plusDays(7), partners.get(0), admin));
 
-        actividades.add(act("Seguridad en el hogar",
+        activities.add(activity("Seguridad en el hogar",
                 "Curso en línea sobre prevención de riesgos domésticos.",
-                "educar", "ONLINE", "Online", 10, 8, IMG_EDUCAR,
-                ActivityStatus.DRAFT, hoy.plusDays(60), hoy.plusDays(62),
-                hoy.plusDays(50), orgs.get(1), admin));
+                "educar", "ONLINE", null, 10, 8, IMG_EDUCAR,
+                ActivityStatus.DRAFT, today.plusDays(60), today.plusDays(62),
+                today.plusDays(50), partners.get(1), admin));
 
-        // Propuesta por una entidad y pendiente de que la Fundación la apruebe.
-        actividades.add(act("Voluntariado ambiental",
+        // Propuesta por una partnerUser y pendiente de que la Fundación la apruebe.
+        activities.add(activity("Voluntariado ambiental",
                 "Jornada de reforestación con voluntariado corporativo.",
-                "voluntariado", "PRESENCIAL", "Madrid", 8, 6, IMG_VOLUNTARIADO,
-                ActivityStatus.PENDING_APPROVAL, hoy.plusDays(50), hoy.plusDays(50),
-                hoy.plusDays(40), orgs.get(5), entidad));
+                "medioambiente", "PRESENCIAL", "Madrid", 8, 6, IMG_MEDIOAMBIENTE,
+                ActivityStatus.PENDING_APPROVAL, today.plusDays(50), today.plusDays(50),
+                today.plusDays(40), partners.get(5), partnerUser));
 
-        activityRepository.saveAll(actividades);
+        activityRepository.saveAll(activities);
     }
 
-    private Activity act(String title, String description, String line, String mode,
+    private Activity activity(String title, String description, String line, String mode,
                          String location, int spots, int hours, String imageUrl,
                          ActivityStatus status, LocalDate start, LocalDate end,
                          LocalDate deadline, Partner partner, User createdBy) {
@@ -169,11 +171,11 @@ public class ActivitySeeder implements CommandLineRunner {
         return a;
     }
 
-    private User primeraConRol(Role rol) {
+    private User firstUserWithRole(Role role) {
         return userRepository.findAll().stream()
-                .filter(u -> u.getRole() == rol)
+                .filter(u -> u.getRole() == role)
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException(
-                        "UserSeeder no dejó ninguna persona con rol " + rol));
+                        "UserSeeder no dejó ninguna persona con rol " + role));
     }
 }

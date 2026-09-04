@@ -20,7 +20,7 @@ import com.verisure.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 
 /**
- * Siembra 6 «me gusta» sobre las actividades visibles en el catálogo.
+ * Siembra 6 «me gusta» sobre las actividades visible en el catálogo.
  *
  * <p>Los pares se generan recorriendo dos bucles anidados, nunca al azar, para
  * respetar la restricción única {@code (activity_id, user_id)} de la tabla.
@@ -33,7 +33,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class FavoriteSeeder implements CommandLineRunner {
 
-    private static final int CUANTOS = 6;
+    private static final int HOW_MANY = 6;
 
     private final FavoriteRepository favoriteRepository;
     private final ActivityRepository activityRepository;
@@ -45,33 +45,33 @@ public class FavoriteSeeder implements CommandLineRunner {
             return; // idempotente: no duplica al reiniciar
         }
 
-        List<User> empleadas = userRepository.findAll().stream()
+        List<User> employees = userRepository.findAll().stream()
                 .filter(u -> u.getRole() == Role.EMPLOYEE)
                 .toList();
 
         // Solo las que se ven en el catálogo: nadie puede marcar un borrador.
-        List<Activity> visibles = activityRepository.findAll().stream()
+        List<Activity> visible = activityRepository.findAll().stream()
                 .filter(a -> a.getStatus() == ActivityStatus.PUBLISHED
                           || a.getStatus() == ActivityStatus.FULL)
                 .toList();
 
-        List<Favorite> favoritos = new ArrayList<>();
-        int creados = 0;
-        for (int i = 0; i < empleadas.size() && creados < CUANTOS; i++) {
-            for (int j = 0; j < visibles.size() && creados < CUANTOS; j++) {
-                // El desplazamiento reparte los favoritos entre actividades distintas
+        List<Favorite> favorites = new ArrayList<>();
+        int created = 0;
+        for (int i = 0; i < employees.size() && created < HOW_MANY; i++) {
+            for (int j = 0; j < visible.size() && created < HOW_MANY; j++) {
+                // El desplazamiento reparte los favorites entre actividades distintas
                 // en vez de amontonarlos todos en la primera.
                 if ((i + j) % 2 != 0) {
                     continue;
                 }
                 Favorite f = new Favorite();
-                f.setUser(empleadas.get(i));
-                f.setActivity(visibles.get(j));
-                favoritos.add(f);
-                creados++;
+                f.setUser(employees.get(i));
+                f.setActivity(visible.get(j));
+                favorites.add(f);
+                created++;
             }
         }
 
-        favoriteRepository.saveAll(favoritos);
+        favoriteRepository.saveAll(favorites);
     }
 }

@@ -229,6 +229,51 @@ public record CancelResult(RegistrationResponse body, Long promotedRegistrationI
 
 ---
 
+## 5 bis · Seguridad
+
+### Las cinco rutas públicas · sin token
+
+| Método | Ruta |
+|---|---|
+| POST | `/api/auth/login` |
+| POST | `/api/auth/register` |
+| GET | `/api/auth/verify?token=` |
+| POST | `/api/auth/resend-verification` |
+| POST | `/api/proposals` — formulario de la landing, sin cuenta |
+
+**Todo lo demás pide token**, incluidos el catálogo de actividades y `/uploads/**`.
+
+### El reparto por rol
+
+| Prefijo | Quién |
+|---|---|
+| `/api/admin/**` · `/api/dashboard/**` | `ADMIN` |
+| `/api/org/**` | `PARTNER` |
+| `GET /api/activities`, `/api/activities/{id}` | `EMPLOYEE` · `ADMIN` |
+| `/uploads/**` | cualquiera con token |
+| El resto | cualquiera con token · quién puede lo decide el servicio |
+
+**Tres rutas sirven a dos roles**, así que la cadena solo exige token y la propiedad la comprueba el servicio devolviendo `NOT_OWNER`: `PATCH /api/registrations/{id}/cancel`, `GET /api/closures/{id}` y `GET /api/closures/{id}/certificate`.
+
+### El token
+
+- `Authorization: Bearer <jwt>`, caducidad de **2 horas**.
+- Lleva dentro el correo y el rol, así que el servidor no consulta la base de datos en cada petición. La contrapartida: un cambio de rol o un rechazo de cuenta **no tienen efecto hasta que el token caduca**.
+- **401 es «no sé quién eres»; 403 es «sé quién eres y no puedes».** Los dos devuelven `ApiError`.
+
+### Errores del login
+
+| Situación | Respuesta |
+|---|---|
+| Contraseña incorrecta **o correo inexistente** | **401** `UNAUTHORIZED`, con el mismo mensaje en ambos casos |
+| Cuenta sin verificar | **403** `ACCOUNT_NOT_VERIFIED` |
+| Cuenta pendiente de aprobación | **403** `ACCOUNT_PENDING_APPROVAL` |
+| Cuenta rechazada | **403** `ACCOUNT_REJECTED` |
+
+El mensaje idéntico para credenciales incorrectas y correo inexistente es deliberado: decir «ese correo no está registrado» permitiría averiguar quién tiene cuenta probando direcciones. El estado de la cuenta solo se revela **después** de acertar la contraseña.
+
+---
+
 ## 6 · Endpoints
 
 52 endpoints en once bloques.
@@ -251,15 +296,17 @@ UserResponse { id, name, email, role, department?, organization? }
 
 `organization` es nullable: quien tiene rol de entidad no pertenece ni a Verisure España ni a Verisure Grupo.
 
-### 6.2 · Actividades · catálogo público y empleado
+### 6.2 · Actividades · catálogo
 
 | Método | Ruta | Rol | Recibe | Devuelve | Errores |
 |---|---|---|---|---|---|
-| GET | `/api/activities` | público | `line`, `mode`, `from`, `to`, `page`, `size` | 200 `Page<ActivityCardResponse>` | — |
-| GET | `/api/activities/{id}` | público | — | 200 `ActivityDetailResponse` | 404 |
-| PATCH | `/api/activities/{id}/cancel` | ADMIN | — | **204** | 403 · 404 |
+| GET | `/api/activities` | EMPLOYEE · ADMIN | `line`, `mode`, `from`, `to`, `page`, `size` | 200 `Page<ActivityCardResponse>` | 403 |
+| GET | `/api/activities/{id}` | EMPLOYEE · ADMIN | — | 200 `ActivityDetailResponse` | 403 · 404 |
+| PATCH | `/api/admin/activities/{id}/cancel` | ADMIN | — | **204** | 403 · 404 |
 
 `GET /api/activities/{id}` es visible solo en `PUBLISHED`, `FULL`, `IN_PROGRESS` y `FINISHED`. En cualquier otro estado devuelve 404, no 403: quien no debe verla no debe ni saber que existe.
+
+⚠️ **El catálogo ya no es público.** Pide token de `EMPLOYEE` o `ADMIN`. Una entidad colaboradora recibe **403**: lo suyo lo ve en `/api/org/activities`. La landing pública no lo necesita, porque sus cifras y líneas de acción son contenido estático.
 
 Tras cancelar, frontend vuelve a consultar actividad e inscripciones.
 
@@ -277,7 +324,7 @@ Tras cancelar, frontend vuelve a consultar actividad e inscripciones.
 | PATCH | `/api/admin/activities/{id}/approve` | ADMIN | — | 200 `ActivityResponse` | 409 |
 | PATCH | `/api/admin/activities/{id}/return` | ADMIN | `ReturnRequest { note }` | 200 `ActivityResponse` | 409 |
 
-- `GET /api/admin/activities/{id}` admite **cualquier** estado, incluidos `DRAFT` y `CANCELLED`. Es la diferencia con el detalle público.
+- `GET /api/admin/activities/{id}` admite **cualquier** estado, incluidos `DRAFT` y `CANCELLED`. Es la diferencia con el detalle del catálogo, que solo muestra los estados visibles.
 - La portada acepta **JPG y PNG, máximo 5 MB**. `CreateActivityRequest.imageUrl` usa exactamente la URL que devuelve este endpoint.
 - `approve` y `return` son para actividades **propuestas por una entidad**. Los cierres **no** se devuelven.
 
@@ -286,10 +333,10 @@ Tras cancelar, frontend vuelve a consultar actividad e inscripciones.
 | Método | Ruta | Rol | Recibe | Devuelve | Errores |
 |---|---|---|---|---|---|
 | POST | `/api/proposals` | **público** | `CreateProposalRequest` | **201** | 400 · 429 `RATE_LIMIT_EXCEEDED` |
-| GET | `/api/proposals` | ADMIN | `status`, `page` | 200 `Page<ProposalRow>` | 403 |
-| GET | `/api/proposals/{id}` | ADMIN | — | 200 `ProposalDetailResponse` | 403 · 404 |
-| POST | `/api/proposals/{id}/accept` | ADMIN | — | **201** `ActivityResponse` | 409 `PROPOSAL_ALREADY_DECIDED` |
-| PATCH | `/api/proposals/{id}/reject` | ADMIN | — | **204** | 409 `PROPOSAL_ALREADY_DECIDED` |
+| GET | `/api/admin/proposals` | ADMIN | `status`, `page` | 200 `Page<ProposalRow>` | 403 |
+| GET | `/api/admin/proposals/{id}` | ADMIN | — | 200 `ProposalDetailResponse` | 403 · 404 |
+| POST | `/api/admin/proposals/{id}/accept` | ADMIN | — | **201** `ActivityResponse` | 409 `PROPOSAL_ALREADY_DECIDED` |
+| PATCH | `/api/admin/proposals/{id}/reject` | ADMIN | — | **204** | 409 `PROPOSAL_ALREADY_DECIDED` |
 
 Aceptar devuelve **201** y no 200 porque crea una actividad nueva.
 
@@ -358,9 +405,9 @@ CreateClosureRequest { registrationId, actualHours, rating (1..5), comment?, evi
 | Método | Ruta | Rol | Recibe | Devuelve | Errores |
 |---|---|---|---|---|---|
 | GET | `/api/admin/activities/pending-closure` | ADMIN | `page` | 200 `Page<ActivityClosureRow>` | 403 |
-| GET | `/api/activities/{id}/closure` | ADMIN | — | 200 `ActivityClosureResponse` · borrador + agregados | 403 · 404 |
-| PUT | `/api/activities/{id}/closure` | ADMIN | `SaveActivityClosureRequest` | 200 `ActivityClosureResponse` | 409 `CLOSURE_ALREADY_CLOSED` |
-| PATCH | `/api/activities/{id}/closure/finalize` | ADMIN | — | 200 `ActivityClosureResponse` | 409 `CLOSURE_ALREADY_CLOSED` |
+| GET | `/api/admin/activities/{id}/closure` | ADMIN | — | 200 `ActivityClosureResponse` · borrador + agregados | 403 · 404 |
+| PUT | `/api/admin/activities/{id}/closure` | ADMIN | `SaveActivityClosureRequest` | 200 `ActivityClosureResponse` | 409 `CLOSURE_ALREADY_CLOSED` |
+| PATCH | `/api/admin/activities/{id}/closure/finalize` | ADMIN | — | 200 `ActivityClosureResponse` | 409 `CLOSURE_ALREADY_CLOSED` |
 
 ```
 SaveActivityClosureRequest { collaborationRating (1..5)?, closingNotes?, lessonsLearned? }

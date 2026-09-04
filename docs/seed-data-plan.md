@@ -41,7 +41,7 @@ Verificadas leyendo las ocho entidades:
 
 Si no coinciden, los filtros del catálogo no devuelven nada.
 
-- `line`: `desoledad` · `educar` · `acoso` · `voluntariado` — minúsculas
+- `line`: `desoledad` · `educar` · `acoso` · `medioambiente` — minúsculas, una palabra. La cuarta se llamaba `voluntariado` y se renombró: la etiqueta que enseña frontend es «Medio Ambiente»
 - `mode`: `PRESENCIAL` · `ONLINE` · `MIXTO` — mayúsculas
 
 ## Fechas · mixtas
