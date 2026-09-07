@@ -7,8 +7,9 @@ import com.verisure.backend.entity.enums.RegistrationStatus;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.EnumType;
@@ -23,7 +24,7 @@ import jakarta.persistence.ManyToOne;
 
 @Entity
 @Table(name = "registrations")
-@Data
+@Getter @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class Registration {
@@ -35,7 +36,6 @@ public class Registration {
     private RegistrationStatus status;
 
     @Column(nullable = false)
-    //@Builder.Default
     private boolean accepted = false;     // apta, no es un estado
 
     @Column(name = "queue_position")
