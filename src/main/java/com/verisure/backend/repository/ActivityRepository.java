@@ -2,11 +2,15 @@ package com.verisure.backend.repository;
 
 import java.util.Optional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.verisure.backend.entity.Activity;
+import com.verisure.backend.entity.enums.ActivityStatus;
+import com.verisure.backend.repository.projection.ActivitySummary;
 import com.verisure.backend.repository.projection.SpotInfo;
 
 public interface ActivityRepository extends JpaRepository<Activity, Long>{
@@ -30,5 +34,45 @@ public interface ActivityRepository extends JpaRepository<Activity, Long>{
             where a.id = :activityId
             """)
     Optional<SpotInfo> findSpotInfo(@Param("activityId") Long activityId);
+
+    @Query(value = """
+            select new com.verisure.backend.repository.projection.ActivitySummary(
+                a.id, a.title, a.partner.name, a.status,
+                a.startDate, a.endDate, a.spots,
+                count(f))
+            from Activity a
+            left join a.favorites f
+            where (:status is null or a.status = :status)
+            group by a.id, a.title, a.partner.name, a.status,
+                     a.startDate, a.endDate, a.spots
+            """,
+            countQuery = """
+            select count(a.id) from Activity a
+            where (:status is null or a.status = :status)
+            """)
+    Page<ActivitySummary> findByStatusWithFavoriteCount(
+            @Param("status") ActivityStatus status, Pageable pageable);
+
+    @Query(value = """
+            select new com.verisure.backend.repository.projection.ActivitySummary(
+                a.id, a.title, a.partner.name, a.status,
+                a.startDate, a.endDate, a.spots,
+                count(f))
+            from Activity a
+            left join a.favorites f
+            where (:term is null or :term = ''
+                or lower(a.title) like lower(concat('%', :term, '%'))
+                or lower(a.partner.name) like lower(concat('%', :term, '%')))
+            group by a.id, a.title, a.partner.name, a.status,
+                     a.startDate, a.endDate, a.spots
+            """,
+            countQuery = """
+            select count(a.id) from Activity a
+            where (:term is null or :term = ''
+                or lower(a.title) like lower(concat('%', :term, '%'))
+                or lower(a.partner.name) like lower(concat('%', :term, '%')))
+            """)
+    Page<ActivitySummary> searchByTitleOrPartner(
+            @Param("term") String term, Pageable pageable);
 
 }
