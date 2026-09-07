@@ -1,5 +1,6 @@
 package com.verisure.backend.service;
 
+import com.verisure.backend.dto.user.UserResponse;
 /**
  * La autenticación de sesión que no vive en la cadena de seguridad.
  *
@@ -7,6 +8,14 @@ package com.verisure.backend.service;
  * dentro del filtro, porque devuelve el token en su respuesta.
  */
 public interface AuthService {
+
+    /**
+     * Perfil de quien hace la petición. El correo llega ya validado por el
+     * token —lo comprobó
+     * {@link com.verisure.backend.security.filter.JWTAuthorization} antes de
+     * llegar al controlador—; aquí solo falta traer la fila.
+     */
+    UserResponse me(String email);
 
     /**
      * Cierra una sesión en el servidor. <b>No revoca el JWT</b>: un token es
