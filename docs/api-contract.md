@@ -1,12 +1,16 @@
 # Contrato de API · Voluntariado Fundación Verisure
 
-**Borrador para la sesión de C-03 · 2 de septiembre de 2026**
+**Borrador para la sesión de C-03 · 7 de septiembre de 2026**
+
+> C-03 ([#179](https://github.com/Proyecto-Fundacion-Verisure/backend/pull/179)) y C-04 ([#180](https://github.com/Proyecto-Fundacion-Verisure/backend/pull/180)) ya están mergeados en `dev`.
 
 > Este documento es la **única** fuente del contrato entre backend y frontend. Sustituye a la tabla de endpoints del issue [#117](https://github.com/Proyecto-Fundacion-Verisure/backend/issues/117) y a las citas por pantalla del documento de frontend, que estuvieron escritas dos veces durante dos semanas sin que nada comprobara que coincidían.
 >
 > **Si una pantalla necesita un campo que no está aquí, no se inventa:** se pide el cambio, se actualiza este documento y luego se implementa. Cualquier cambio posterior se hace **por PR**, nunca en un mensaje de chat.
 
-**Estado:** borrador pendiente de repasar en voz alta con las tres personas de frontend. Las secciones marcadas con ⚠️ son las que hay que acordar en esa sesión.
+**Estado:** borrador pendiente de repasar en voz alta con las tres personas de frontend. Las secciones marcadas con ⚠️ son las que hay que acordar en esa sesión, y siguen todas abiertas.
+
+Lo que ha cambiado desde el 2 de septiembre no es el contrato, sino su coste: **el código de C-03 y C-04 ya está escrito sobre estas decisiones**. Los ocho enumerados, la forma de `ApiError`, los dieciocho códigos, las siete firmas que cruzan dominios, los trece avisos y la cadena de seguridad están implementados tal como se describen aquí. Cambiar cualquiera de los puntos ⚠️ en la sesión ya no es editar un documento: es un cambio de código.
 
 ---
 
@@ -462,6 +466,8 @@ ActivityClosureResponse  { activityId, collaborationRating, closingNotes, lesson
 
 ## 7 · Lo que hay que acordar en la sesión
 
+Los seis siguen abiertos: la sesión no se ha hecho.
+
 | # | Punto | Por qué |
 |---|---|---|
 | 1 | ⚠️ Ruta de frontend `/reports/{id}` → **`/closures/{id}`** | La entrega FE2. Backend solo forma el enlace con `app.base-url` + la ruta |
@@ -471,9 +477,24 @@ ActivityClosureResponse  { activityId, collaborationRating, closingNotes, lesson
 | 5 | ⚠️ La bandeja de administración lista **actividades**, no cierres | Cambia la pantalla `admin-close` |
 | 6 | Campos concretos de los DTO marcados `TODO C-03` en el código | `CreateClosureRequest`, `ClosureDetailResponse`, `CertificateResponse`, `ActivityClosureRow` |
 
+### Dónde está ya cada punto en el código
+
+Sirve para ver, antes de la sesión, qué cuesta cambiar cada cosa.
+
+| # | Estado en `dev` |
+|---|---|
+| 1 | Implementado a medias: `app.base-url` ya existe en `application.properties`. La ruta la sigue entregando FE2, así que el cambio no toca backend |
+| 2 | Sin implementar: `MyRegistrationItem` todavía no existe como DTO. Es el punto más barato de cambiar |
+| 3 | **Implementado.** `exception/ApiError.java` usa `Map<String, List<String>>`, y `GlobalExceptionHandler` lo rellena así |
+| 4 | **Implementado por omisión.** `ParticipationClosureService` no tiene ningún método de validar ni de devolver, y no hay endpoint que lo exponga |
+| 5 | **Implementado.** `ActivityClosureController` lista actividades en `GET /api/admin/activities/pending-closure`, no cierres |
+| 6 | Pendiente y **el más urgente de los seis**: los `record` de `dto/closure/` y `dto/activityclosure/` están vacíos con `TODO C-03`. Frontend no puede mockear ninguna pantalla de cierre hasta que tengan campos |
+
 ## 8 · Enmiendas pendientes de publicar
 
-Este contrato se aparta de las fuentes escritas en varios puntos. Las enmiendas están redactadas en `docs/c-03-plan.md` y **aún no se han publicado**:
+Este contrato se aparta de las fuentes escritas en varios puntos. Las enmiendas están redactadas en `docs/c-03-plan.md` y **aún no se han publicado**.
+
+Conviene ser consciente de lo que eso significa hoy: **el código mergeado ya se comporta según estas enmiendas**, así que las issues y el runbook de la tabla describen un sistema que ya no es el que hay en `dev`. Quien las lea sin este documento al lado se va a equivocar.
 
 | Documento | Qué se enmienda |
 |---|---|
