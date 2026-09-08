@@ -1,5 +1,6 @@
 package com.verisure.backend.exception;
 
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -21,6 +22,7 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
+import com.verisure.backend.validation.ValidDateRange;
 
 /**
  * Traduce cualquier excepción a la forma única {@link ApiError}.
@@ -48,7 +50,6 @@ public class GlobalExceptionHandler {
                 .body(ApiError.of("NOT_FOUND", ex.getMessage(), path(request)));
     }
 
-    /** Bean Validation sobre el cuerpo de la petición. */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiError> handleValidation(MethodArgumentNotValidException ex,
                                                      WebRequest request) {
@@ -56,10 +57,20 @@ public class GlobalExceptionHandler {
         ex.getBindingResult().getFieldErrors().forEach(error ->
                 fields.computeIfAbsent(error.getField(), k -> new ArrayList<>())
                       .add(error.getDefaultMessage()));
+String dateRangeCode = ValidDateRange.class.getSimpleName();
+        boolean dateRangeInvalid = ex.getBindingResult().getFieldErrors().stream()
+                .anyMatch(error -> error.getCodes() != null
+                        && Arrays.asList(error.getCodes()).contains(dateRangeCode));
+        
 
-        return ResponseEntity.badRequest().body(ApiError.of(
-                ErrorCode.VALIDATION_ERROR.name(),
-                "La solicitud no es válida", path(request), fields));
+        String code = dateRangeInvalid
+                ? ErrorCode.INVALID_DATE_RANGE.name()
+                : ErrorCode.VALIDATION_ERROR.name();
+        String message = dateRangeInvalid
+                ? "El rango de fechas no es válido"
+                : "La solicitud no es válida";
+
+        return ResponseEntity.badRequest().body(ApiError.of(code, message, path(request), fields));
     }
 
     /** Bean Validation sobre parámetros y variables de ruta. */
