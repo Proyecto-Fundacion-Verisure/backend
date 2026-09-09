@@ -16,6 +16,7 @@ import com.verisure.backend.exception.ErrorCode;
 import com.verisure.backend.exception.NotFoundException;
 import com.verisure.backend.repository.ActivityRepository;
 import com.verisure.backend.repository.RegistrationRepository;
+import com.verisure.backend.repository.UserRepository;
 import com.verisure.backend.repository.projection.SpotInfo;
 
 import lombok.RequiredArgsConstructor;
@@ -26,11 +27,13 @@ public class SpotServiceImpl implements SpotService {
 
     private final RegistrationRepository registrationRepository;
     private final ActivityRepository activityRepository;
+    private final UserRepository userRepository;
 
     @Override
     @Transactional
-    public Registration register(Long activityId, User user) {
+    public Registration register(Long activityId, String userEmail) {
         SpotInfo spot = findSpotInfoOrFail(activityId);
+        User user = findUserOrFail(userEmail);
 
         boolean hasLiveRegistration = registrationRepository.existsByActivityIdAndUserIdAndStatusNot(
                 activityId, user.getId(), RegistrationStatus.CANCELLED);
@@ -81,14 +84,26 @@ public class SpotServiceImpl implements SpotService {
                 .orElseThrow(() -> NotFoundException.of("actividad", activityId));
     }
 
+    private User findUserOrFail(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new NotFoundException("No existe la cuenta de " + email));
+    }
+
     /**
      * Arma la inscripción nueva, al final de la cola y sin decidir.
      *
      * <p>createdAt se pone a mano: la entidad no tiene @PrePersist.
+     *
+     * <p>La actividad se carga entera y no con {@code getReferenceById}, porque
+     * el controlador lee su título al construir la respuesta, ya fuera de la
+     * transacción: un proxy sin inicializar revienta ahí.
      */
     private Registration buildQueuedRegistration(Long activityId, User user) {
+        Activity activity = activityRepository.findById(activityId)
+                .orElseThrow(() -> NotFoundException.of("actividad", activityId));
+
         Registration registration = new Registration();
-        registration.setActivity(activityRepository.getReferenceById(activityId));
+        registration.setActivity(activity);
         registration.setUser(user);
         registration.setStatus(RegistrationStatus.WAITLISTED);
         registration.setAccepted(false);

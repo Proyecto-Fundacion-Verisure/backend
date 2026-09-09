@@ -351,9 +351,32 @@ Aceptar devuelve **201** y no 200 porque crea una actividad nueva.
 | POST | `/api/registrations` | EMPLOYEE | `{ activityId }` | **201** `RegistrationResponse` | 400 `DEADLINE_PASSED` · 409 `ALREADY_REGISTERED` |
 | GET | `/api/registrations/me` | EMPLOYEE | — | 200 `List<MyRegistrationItem>` | 401 |
 | GET | `/api/admin/registrations` | ADMIN | `activityId`, `status`, `page` | 200 `Page<RegistrationRow>` | 403 |
+| GET | `/api/admin/registrations/counts` | ADMIN | `activityId` **obligatorio** | 200 `RegistrationCounts` | 403 |
 | PATCH | `/api/registrations/{id}/accept` | ADMIN | — | 200 `RegistrationResponse` | 404 |
 | PATCH | `/api/registrations/{id}/reject` | ADMIN | — **sin motivo** | 200 `RegistrationResponse` | 404 |
 | PATCH | `/api/registrations/{id}/cancel` | EMPLOYEE **o** ADMIN | `CancelRequest { reason? }` | 200 `RegistrationResponse` | 403 `NOT_OWNER` · 404 |
+
+```
+RegistrationRow {
+  registrationId,
+  userName, department, organization,
+  status, accepted, queuePosition?,
+  yearHours,
+  decidedAt?, createdAt
+}
+
+RegistrationCounts { confirmed, waitlisted, unreviewed }
+```
+
+⚠️ **Los contadores van en su propia ruta y no dentro del tablero.** La respuesta
+de `/api/admin/registrations` es el `Page<T>` de Spring Data, y ahí no caben tres
+cifras que además son de toda la actividad y no de la página.
+
+- `yearHours` son las horas de esa persona en el **año en curso**, sumadas sobre
+  sus participaciones `CLOSED`. Misma definición que el dashboard de la Fundación.
+- `unreviewed` son las inscripciones **en cola que nadie ha decidido todavía**
+  (`WAITLISTED` con `accepted = false`). Una rechazada no cuenta: también tiene
+  `accepted = false`, pero sí está revisada.
 
 ```
 MyRegistrationItem {
