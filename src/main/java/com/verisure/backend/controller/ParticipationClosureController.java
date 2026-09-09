@@ -3,6 +3,7 @@ package com.verisure.backend.controller;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -61,14 +62,14 @@ public class ParticipationClosureController {
     }
 
     /** Detalle de un cierre. El servicio comprueba que quien pide es el dueño o administración. */
-    @GetMapping("/{id}")
-    public ClosureDetailResponse getById(@PathVariable Long id) {
-        return participationClosureService.getById(id);
+    @GetMapping("/{closureId}")
+    public ClosureDetailResponse getById(@PathVariable Long closureId, Authentication authentication) {
+        return participationClosureService.getById(closureId, authentication.getName());
     }
 
     /** Certificado de participación. Solo la persona propietaria. */
-    @GetMapping("/{id}/certificate")
-    public CertificateResponse getCertificate(@PathVariable Long id) {
-        return participationClosureService.getCertificate(id);
+    @GetMapping("/{closureId}/certificate")
+    public CertificateResponse getCertificate(@PathVariable Long closureId, Authentication authentication) {
+        return participationClosureService.getCertificate(closureId, authentication.getName());
     }
 }

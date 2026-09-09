@@ -32,8 +32,15 @@ public interface ParticipationClosureService {
      */
     ClosureDetailResponse submit(CreateClosureRequest request, MultipartFile evidence);
 
-    /** Detalle de un cierre. {@code NOT_OWNER} si no es de quien lo pide y no es administración. */
-    ClosureDetailResponse getById(Long closureId);
+    /**
+     * Detalle de un cierre. {@code NOT_OWNER} si quien lo pide no es el dueño
+     * y no es administración.
+     *
+     * @throws com.verisure.backend.exception.NotFoundException si el cierre no existe,
+     * @throws com.verisure.backend.exception.DomainException {@code NOT_OWNER}
+     *         si no es de quien lo pide y no es administración.
+     */
+    ClosureDetailResponse getById(Long closureId, String userEmail);
 
     /**
      * Certificado de participación. Solo la propietaria.
@@ -42,5 +49,5 @@ public interface ParticipationClosureService {
      *         {@code ACTIVITY_NOT_CLOSED} si la actividad no está cerrada,
      *         {@code NOT_OWNER} si no es la propietaria.
      */
-    CertificateResponse getCertificate(Long closureId);
+    CertificateResponse getCertificate(Long closureId, String userEmail);
 }
