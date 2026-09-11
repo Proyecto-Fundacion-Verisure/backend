@@ -107,6 +107,18 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * El 415 que lanza el servicio cuando una parte del multipart (p. ej. la
+     * evidencia de un cierre) trae un formato no admitido. La de Spring no vale:
+     * es comprobada y no se puede lanzar desde el servicio.
+     */
+    @ExceptionHandler(UnsupportedMediaTypeException.class)
+    public ResponseEntity<ApiError> handleDomainUnsupportedMediaType(UnsupportedMediaTypeException ex,
+                                                                     WebRequest request) {
+        return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE).body(ApiError.of(
+                "UNSUPPORTED_MEDIA_TYPE", ex.getMessage(), path(request)));
+    }
+
+    /**
      * Una URL que no corresponde a ningún endpoint.
      *
      * <p>Sin esto la recoge la red de seguridad de abajo y frontend recibe un

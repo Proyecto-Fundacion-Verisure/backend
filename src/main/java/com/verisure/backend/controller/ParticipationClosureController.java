@@ -58,6 +58,7 @@ public class ParticipationClosureController {
             @RequestPart(value = "evidence", required = false) MultipartFile evidence) {
 
         ClosureDetailResponse body = participationClosureService.submit(request, evidence);
+        
         return ResponseEntity.status(HttpStatus.CREATED).body(body);
     }
 
