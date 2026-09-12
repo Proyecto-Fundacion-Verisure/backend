@@ -5,8 +5,11 @@ import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
+import jakarta.persistence.LockModeType;
 
 import com.verisure.backend.entity.Activity;
 import com.verisure.backend.entity.enums.ActivityStatus;
@@ -34,6 +37,17 @@ public interface ActivityRepository extends JpaRepository<Activity, Long>{
             where a.id = :activityId
             """)
     Optional<SpotInfo> findSpotInfo(@Param("activityId") Long activityId);
+
+    /**
+     * La actividad con su fila bloqueada hasta que confirme la transacción.
+     *
+     * <p>La usa {@code SpotService.promoteFirstInQueue} · {@code B3-05}: sin el
+     * bloqueo, dos bajas simultáneas leen el mismo cupo libre y ascienden a dos
+     * personas a la misma plaza, sin que salte ningún error.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select a from Activity a where a.id = :activityId")
+    Optional<Activity> findByIdForUpdate(@Param("activityId") Long activityId);
 
     @Query(value = """
             select new com.verisure.backend.repository.projection.ActivitySummary(
