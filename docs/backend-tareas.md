@@ -625,6 +625,7 @@ El login devuelve un código distinto por estado: `ACCOUNT_NOT_VERIFIED` · `ACC
 
 #### `B1-06` CertificateService ⬜ · 0,75 d
 
+
 El certificado es el único documento del MVP que sale de la plataforma con un nombre propio dentro. Por eso tiene dos comprobaciones y no una.
 
 `GET /api/closures/{id}/certificate`:
