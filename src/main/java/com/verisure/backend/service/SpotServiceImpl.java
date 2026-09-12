@@ -2,6 +2,7 @@ package com.verisure.backend.service;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -76,6 +77,74 @@ public class SpotServiceImpl implements SpotService {
         if (!allSpotsTaken && isFull) {
             activity.setStatus(ActivityStatus.PUBLISHED);
         }
+    }
+
+    @Override
+    @Transactional
+    public Long promoteFirstInQueue(Long activityId) {
+        lockActivityOrFail(activityId);
+
+        boolean noSpotAvailable = !hasFreeSpot(activityId);
+        if (noSpotAvailable) {
+            return null;
+        }
+
+        Registration promoted = findFirstAcceptedInQueue(activityId);
+        if (promoted == null) {
+            return null;
+        }
+
+        promoted.setStatus(RegistrationStatus.CONFIRMED);
+        promoted.setQueuePosition(null);
+
+        reorderQueue(activityId);
+        refreshFullStatus(activityId);
+
+        return promoted.getId();
+    }
+
+    /**
+     * Bloquea la fila de la actividad hasta que confirme la transacción.
+     *
+     * <p>Va antes de leer el cupo: leerlo primero y bloquear después es haber
+     * leído ya el dato viejo, y entonces el bloqueo no sirve de nada.
+     */
+    private void lockActivityOrFail(Long activityId) {
+        activityRepository.findByIdForUpdate(activityId)
+                .orElseThrow(() -> NotFoundException.of("actividad", activityId));
+    }
+
+    /**
+     * La primera de la cola que además esté aceptada, o null si no hay ninguna.
+     *
+     * <p>Estar la primera no basta: quien no ha pasado por la decisión de la
+     * administradora no se cuela por delante de quien sí.
+     */
+    private Registration findFirstAcceptedInQueue(Long activityId) {
+        List<Registration> queue = findQueue(activityId);
+
+        for (Registration registration : queue) {
+            if (registration.isAccepted()) {
+                return registration;
+            }
+        }
+        return null;
+    }
+
+    /** Renumera la cola a 1, 2, 3… sin huecos tras sacar a alguien de ella. */
+    private void reorderQueue(Long activityId) {
+        List<Registration> queue = findQueue(activityId);
+
+        int position = 1;
+        for (Registration registration : queue) {
+            registration.setQueuePosition(position);
+            position++;
+        }
+    }
+
+    private List<Registration> findQueue(Long activityId) {
+        return registrationRepository.findByActivityIdAndStatusOrderByQueuePosition(
+                activityId, RegistrationStatus.WAITLISTED);
     }
 
     /** Cupo, confirmadas y fecha límite en una consulta, sin cargar Activity. */

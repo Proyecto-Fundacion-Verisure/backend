@@ -5,7 +5,7 @@ import com.verisure.backend.entity.Registration;
 /**
  * Todo lo que toca plazas y cola de una actividad.
  *
- * <p>Dueña: BE3 · Tarea: B3-02.
+ * <p>Dueña: BE3 · Tarea: B3-02 · B3-05.
  */
 public interface SpotService {
 
@@ -32,5 +32,16 @@ public interface SpotService {
      * BE2: el reparto asigna FULL a B3-02.
      */
     void refreshFullStatus(Long activityId);
+
+    /**
+     * Asciende a la primera persona apta de la cola al liberarse una plaza, y
+     * devuelve el identificador de su inscripción o {@code null} si no ascendió
+     * nadie.
+     *
+     * <p>Quien llama es responsable de avisar con {@code notifySpotReleased}: el
+     * destinatario nace dentro de esta transacción y su identificador no está en
+     * ninguna ruta, así que el controlador no puede adivinarlo.
+     */
+    Long promoteFirstInQueue(Long activityId);
 
 }
