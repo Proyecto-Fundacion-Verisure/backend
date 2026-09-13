@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import com.verisure.backend.dto.registration.MyRegistrationItem;
 import com.verisure.backend.entity.Registration;
 import com.verisure.backend.entity.enums.RegistrationStatus;
 import com.verisure.backend.repository.projection.RegistrationCounts;
@@ -111,5 +112,34 @@ public interface RegistrationRepository extends JpaRepository<Registration, Long
             where r.activity.id = :activityId
             """)
     RegistrationCounts findCountsByActivityId(@Param("activityId") Long activityId);
+
+    /**
+     * «Mis voluntariados»: las inscripciones de una persona con el estado de su
+     * cierre · {@code B3-06}.
+     *
+     * <p>Tres cosas que alguien desharía por error: el {@code left join} al
+     * partner, porque {@code partner_id} es nulable; el {@code left join} a
+     * {@code ParticipationClosure}, porque la mayoría de inscripciones no tienen
+     * cierre y un {@code join} normal las borraría de la lista; y traer el
+     * cierre aquí y no con una consulta por fila, que sería un N+1.
+     */
+    @Query("""
+            select new com.verisure.backend.dto.registration.MyRegistrationItem(
+                r.id,
+                new com.verisure.backend.dto.registration.MyRegistrationActivity(
+                    a.id, a.title, p.name, a.startDate, a.endDate, a.hours),
+                r.status,
+                r.queuePosition,
+                pc.id,
+                case when r.status = com.verisure.backend.entity.enums.RegistrationStatus.CLOSED
+                     then true else false end)
+            from Registration r
+            join r.activity a
+            left join a.partner p
+            left join ParticipationClosure pc on pc.registration = r
+            where r.user.id = :userId
+            order by a.startDate desc
+            """)
+    List<MyRegistrationItem> findMine(@Param("userId") Long userId);
 
 }
