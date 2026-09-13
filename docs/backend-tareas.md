@@ -1064,7 +1064,7 @@ y de cada actividad que pasa a FINISHED:
 
 Llama a `notifyActivityFinished(id)` **después** de cerrar la transacción de cada actividad. **El método `@Scheduled` no lleva `@Transactional`**: él orquesta, y la transacción la abre el servicio al que llama.
 
-**Y un endpoint de administración para dispararla a mano:** `POST /api/admin/activities/refresh-status`. Sin él, la demo depende de esperar a medianoche. **No está en el contrato de API**: hay que añadirlo por PR antes de implementarlo.
+**Y un endpoint de administración para dispararla a mano:** `POST /api/admin/activities/refresh-status`. Sin él, la demo depende de esperar a medianoche. **Ya está en el contrato de API**, §6.3, publicado el 13 de septiembre.
 
 **Idempotente:** ejecutarla dos veces el mismo día no puede duplicar transiciones ni volver a avisar.
 
@@ -1175,11 +1175,11 @@ Todas las pruebas van juntas en la semana 4, cuando los endpoints ya no van a ca
 
 ## 11 · Enmiendas pendientes del contrato de API
 
-Cuatro puntos en los que **este documento y `docs/api-contract.md` no dicen lo mismo**. No se resuelven a solas: cada uno necesita un PR sobre el contrato, revisado por las tres, y algunos afectan a frontend.
+Cuatro puntos en los que **este documento y `docs/api-contract.md` no decían lo mismo**. No se resuelven a solas: cada uno necesita un PR sobre el contrato, revisado por las tres, y algunos afectan a frontend. **Queda uno resuelto y tres abiertos.**
 
 | # | Qué | Dónde choca |
 |---|---|---|
-| 1 | **`POST /api/admin/activities/refresh-status`** no está entre los 52 endpoints del contrato, pero `B3-17` lo necesita para poder enseñar la demo sin esperar a medianoche. Añadirlo o quitarlo de la tarea. | `B3-17` |
+| 1 | ✅ **Resuelta el 13 de septiembre.** `POST /api/admin/activities/refresh-status` se añadió al contrato, §6.3, con su `RefreshStatusResponse`. El contrato pasa de 52 endpoints a 53. El porqué está en `docs/b3-17-enmienda-contrato.md`. | `B3-17` |
 | 2 | **Corregir un cierre de participación.** `B1-03` dice que un segundo `POST /api/closures` actualiza y responde 200; el contrato solo documenta 201 y `CLOSURE_ALREADY_CLOSED`. Son dos comportamientos distintos para el mismo endpoint. | `B1-03` · contrato §6.7 |
 | 3 | **Campos de requisitos en `Activity`.** `B2-05` describe un formulario con «dirección y requisitos»; la entidad solo tiene `location`. O se añade la columna o se quita de la pantalla. | `B2-05` · `C-02` |
 | 4 | **Acuse de recibo de propuesta.** No hay método en `NotificationService` para avisar a quien envía el formulario público. Si se quiere, son catorce métodos y no trece. | `B2-06` · contrato §5 |
