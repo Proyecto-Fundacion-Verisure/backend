@@ -44,4 +44,14 @@ public interface SpotService {
      */
     Long promoteFirstInQueue(Long activityId);
 
+    /**
+     * Renumera la cola a 1, 2, 3… sin huecos.
+     *
+     * <p>La llama todo el que saque a alguien de la cola —confirmar, rechazar,
+     * cancelar—, no solo el ascenso: con huecos, la posición que
+     * {@link #register} calcula para quien llega nueva puede caer por delante
+     * de quien ya estaba esperando.
+     */
+    void reorderQueue(Long activityId);
+
 }

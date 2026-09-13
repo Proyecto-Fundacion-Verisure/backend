@@ -56,10 +56,12 @@ public class RegistrationServiceImpl implements RegistrationService {
         registration.setDecidedBy(admin);
         registration.setDecidedAt(Instant.now());
 
-        if (spotService.hasFreeSpot(registration.getActivity().getId())) {
+        Long activityId = registration.getActivity().getId();
+        if (spotService.hasFreeSpot(activityId)) {
             registration.setStatus(RegistrationStatus.CONFIRMED);
             registration.setQueuePosition(null);
-            spotService.refreshFullStatus(registration.getActivity().getId());
+            spotService.reorderQueue(activityId);
+            spotService.refreshFullStatus(activityId);
         }
         // sin hueco: se queda WAITLISTED con accepted = true, en su posición
 
@@ -73,8 +75,12 @@ public class RegistrationServiceImpl implements RegistrationService {
         User admin = findUserOrFail(adminEmail);
 
         registration.setStatus(RegistrationStatus.REJECTED);
+        registration.setQueuePosition(null);
         registration.setDecidedBy(admin);
         registration.setDecidedAt(Instant.now());
+
+        Long activityId = registration.getActivity().getId();
+        spotService.reorderQueue(activityId);
 
         return registration;
     }
@@ -124,11 +130,11 @@ public class RegistrationServiceImpl implements RegistrationService {
         Long activityId = registration.getActivity().getId();
         Long promotedRegistrationId = spotService.promoteFirstInQueue(activityId);
 
-        // La plaza se libera aunque no ascienda nadie, así que el estado de la
-        // actividad se sincroniza siempre: promoteFirstInQueue solo lo hace
-        // cuando hay a quién ascender, y sin esto una actividad con la cola
-        // vacía se quedaría en FULL con plazas libres.
+        // Fuera del ascenso también: promoteFirstInQueue solo sincroniza cuando
+        // hay a quién ascender, y con la cola vacía la actividad se quedaría en
+        // FULL teniendo plazas libres.
         spotService.refreshFullStatus(activityId);
+        spotService.reorderQueue(activityId);
 
         return new CancelResult(RegistrationResponse.from(registration), promotedRegistrationId);
     }
