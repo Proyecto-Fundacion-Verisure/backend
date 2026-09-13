@@ -6,4 +6,7 @@ import com.verisure.backend.entity.Favorite;
 
 public interface FavoriteRepository extends JpaRepository<Favorite, Long> {
 
+    boolean existsByActivityIdAndUserId(Long activityId, Long userId);
+
+    long deleteByActivityIdAndUserId(Long activityId, Long userId);
 }
