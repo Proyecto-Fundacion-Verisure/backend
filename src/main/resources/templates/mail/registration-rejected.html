@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<!-- Solicitud no admitida · Dueña: BE3 · Tarea: B3-09. -->
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{mail/layout :: base(~{::#content})}">
+<body>
+<div id="content">
+    <h1 style="margin:0 0 16px; font-size:20px; color:#27272a;">Tu solicitud no ha sido admitida</h1>
+    <p style="margin:0 0 12px;">Hola <span th:text="${userName}">nombre</span>,</p>
+    <p style="margin:0 0 12px;">No hemos podido asignarte plaza en:</p>
+    <p style="margin:0 0 12px;"><strong th:text="${activityTitle}">actividad</strong>, del <span th:text="${startDate}">fecha</span> al <span th:text="${endDate}">fecha</span>.</p>
+    <p style="margin:0 0 12px;">Puedes apuntarte a cualquier otra actividad del catálogo.</p>
+    <p style="margin:28px 0 0;">
+        <a th:href="${link}" href="#"
+           style="display:inline-block; padding:12px 24px; background-color:#ff6f61;
+                  color:#ffffff; text-decoration:none; border-radius:6px;
+                  font-weight:bold;">Ver la actividad</a>
+    </p>
+</div>
+</body>
+</html>

@@ -15,6 +15,7 @@ import jakarta.persistence.LockModeType;
 
 import com.verisure.backend.entity.Activity;
 import com.verisure.backend.entity.enums.ActivityStatus;
+import com.verisure.backend.repository.projection.ActivityMailView;
 import com.verisure.backend.repository.projection.ActivitySummary;
 import com.verisure.backend.repository.projection.SpotInfo;
 
@@ -106,5 +107,24 @@ public interface ActivityRepository extends JpaRepository<Activity, Long>{
             """)
     Page<ActivitySummary> searchByTitleOrPartner(
             @Param("term") String term, Pageable pageable);
+
+    /**
+     * Datos de una actividad para los correos del rol entidad · {@code B3-09}.
+     *
+     * <p>El {@code coalesce} del correo cae en la entidad cuando la actividad
+     * la creó administración y no hay cuenta creadora: sin él ese aviso no
+     * llegaría a nadie.
+     */
+    @Query("""
+            select new com.verisure.backend.repository.projection.ActivityMailView(
+                a.id, a.title, a.reviewNote, p.name,
+                coalesce(u.fullName, p.contactName),
+                coalesce(u.email, p.email))
+            from Activity a
+            left join a.partner p
+            left join a.createdBy u
+            where a.id = :activityId
+            """)
+    Optional<ActivityMailView> findMailViewById(@Param("activityId") Long activityId);
 
 }

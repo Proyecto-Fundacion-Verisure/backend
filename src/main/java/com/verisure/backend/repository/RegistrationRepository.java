@@ -13,6 +13,7 @@ import com.verisure.backend.dto.registration.MyRegistrationItem;
 import com.verisure.backend.entity.Registration;
 import com.verisure.backend.entity.enums.RegistrationStatus;
 import com.verisure.backend.repository.projection.RegistrationCounts;
+import com.verisure.backend.repository.projection.RegistrationMailView;
 import com.verisure.backend.repository.projection.RegistrationRow;
 
 public interface RegistrationRepository extends JpaRepository<Registration, Long>{
@@ -154,5 +155,46 @@ public interface RegistrationRepository extends JpaRepository<Registration, Long
             order by a.startDate desc
             """)
     List<MyRegistrationItem> findMine(@Param("userId") Long userId);
+
+    /**
+     * Destinatario y datos de una inscripción para su correo · {@code B3-09}.
+     *
+     * <p>Los dos {@code left join} son deliberados: el cierre no existe en la
+     * mayoría de inscripciones, y un {@code join} normal las dejaría sin correo.
+     */
+    @Query("""
+            select new com.verisure.backend.repository.projection.RegistrationMailView(
+                r.id, u.fullName, u.email,
+                a.id, a.title, a.startDate, a.endDate,
+                r.queuePosition, pc.id)
+            from Registration r
+            join r.user u
+            join r.activity a
+            left join ParticipationClosure pc on pc.registration = r
+            where r.id = :registrationId
+            """)
+    Optional<RegistrationMailView> findMailViewById(@Param("registrationId") Long registrationId);
+
+    /**
+     * Lo mismo para todas las inscripciones de una actividad en los estados
+     * dados · {@code B3-09}.
+     *
+     * <p>La usan los tres avisos que van a varias personas: actividad
+     * cancelada, finalizada y cerrada.
+     */
+    @Query("""
+            select new com.verisure.backend.repository.projection.RegistrationMailView(
+                r.id, u.fullName, u.email,
+                a.id, a.title, a.startDate, a.endDate,
+                r.queuePosition, pc.id)
+            from Registration r
+            join r.user u
+            join r.activity a
+            left join ParticipationClosure pc on pc.registration = r
+            where a.id = :activityId and r.status in :statuses
+            """)
+    List<RegistrationMailView> findMailViewsByActivityIdAndStatusIn(
+            @Param("activityId") Long activityId,
+            @Param("statuses") List<RegistrationStatus> statuses);
 
 }
