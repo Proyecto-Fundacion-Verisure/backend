@@ -81,7 +81,7 @@ Ninguna transición existe si no hay una tarea que la escriba. Esta tabla es la 
 | `WAITLISTED` | `SpotService`, al solicitar plaza · `B3-02` |
 | `CONFIRMED` | La decisión de la admin, o `promoteFirstInQueue` · `B3-03` · `B3-05` |
 | `REJECTED` | La decisión de la admin · `B3-03` |
-| `CANCELLED` | La persona o la admin, y `cancelAllForActivity` · `B3-06` |
+| `CANCELLED` | La persona o la admin, `cancelAllForActivity`, y la **tarea programada** con la cola de una actividad que termina · `B3-06` · `B3-17` |
 | `PENDING_CLOSURE` | **Tarea programada**, al terminar la actividad · `B3-17` |
 | `CLOSED` | `closeAllForActivity`, que llama BE1 al finalizar el cierre · `B3-06` |
 
@@ -280,7 +280,7 @@ El mensaje idéntico para credenciales incorrectas y correo inexistente es delib
 
 ## 6 · Endpoints
 
-52 endpoints en once bloques.
+53 endpoints en once bloques.
 
 ### 6.1 · Autenticación
 
@@ -327,10 +327,25 @@ Tras cancelar, frontend vuelve a consultar actividad e inscripciones.
 | GET | `/api/admin/activities/pending` | ADMIN | `page` | 200 `Page<ActivityRow>` | 403 |
 | PATCH | `/api/admin/activities/{id}/approve` | ADMIN | — | 200 `ActivityResponse` | 409 |
 | PATCH | `/api/admin/activities/{id}/return` | ADMIN | `ReturnRequest { note }` | 200 `ActivityResponse` | 409 |
+| POST | `/api/admin/activities/refresh-status` | ADMIN | — | 200 `RefreshStatusResponse` | 401 · 403 |
 
 - `GET /api/admin/activities/{id}` admite **cualquier** estado, incluidos `DRAFT` y `CANCELLED`. Es la diferencia con el detalle del catálogo, que solo muestra los estados visibles.
 - La portada acepta **JPG y PNG, máximo 5 MB**. `CreateActivityRequest.imageUrl` usa exactamente la URL que devuelve este endpoint.
 - `approve` y `return` son para actividades **propuestas por una entidad**. Los cierres **no** se devuelven.
+
+```
+RefreshStatusResponse { started, finished }
+```
+
+`POST /api/admin/activities/refresh-status` dispara a mano el paso de estados por
+fecha que la tarea programada hace de madrugada: `PUBLISHED` · `FULL` →
+`IN_PROGRESS` al llegar `startDate`, e `IN_PROGRESS` → `FINISHED` al pasar
+`endDate`. Es **idempotente**: llamarlo dos veces seguidas devuelve ceros y no
+reenvía ningún correo.
+
+**Frontend no lo necesita para ninguna pantalla.** Existe para no depender de
+esperar a medianoche al probar el ciclo de cierre o al enseñar la demo. Si se
+quiere, encaja como botón de mantenimiento en el panel de administración.
 
 ### 6.4 · Propuestas
 
@@ -396,6 +411,14 @@ MyRegistrationItem {
 | `null` | `false` | «Cerrar tu participación» |
 | tiene valor | `false` | «Cierre enviado» · solo lectura |
 | tiene valor | `true` | «Descargar certificado» |
+
+**`queuePosition` solo viaja mientras la inscripción está en cola.** Al confirmar,
+rechazar o cancelar pasa a `null`, y la cola se renumera a 1, 2, 3… sin huecos,
+así que el número que ve el empleado siempre es su puesto real.
+
+**Y cuando la actividad termina, quien siguiera en cola pasa a `CANCELLED`.** No
+la canceló nadie: la actividad acabó sin que le llegara a tocar plaza. Sin esa
+transición, «Mis voluntariados» seguiría enseñando «en cola» de algo que ya pasó.
 
 - **Cancelar es un único endpoint para los dos roles.**
 - Rechazar **no admite motivo**, por contrato.

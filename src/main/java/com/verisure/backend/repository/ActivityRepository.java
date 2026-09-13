@@ -1,5 +1,7 @@
 package com.verisure.backend.repository;
 
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.domain.Page;
@@ -48,6 +50,22 @@ public interface ActivityRepository extends JpaRepository<Activity, Long>{
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select a from Activity a where a.id = :activityId")
     Optional<Activity> findByIdForUpdate(@Param("activityId") Long activityId);
+
+    /**
+     * Las actividades que ya deberían haber empezado · {@code B3-17}.
+     *
+     * <p>El día de inicio ya cuenta como empezada, por eso {@code <=}.
+     */
+    List<Activity> findByStatusInAndStartDateLessThanEqual(
+            List<ActivityStatus> statuses, LocalDate date);
+
+    /**
+     * Las actividades que ya deberían haber terminado · {@code B3-17}.
+     *
+     * <p>El día de fin todavía cuenta como en curso, por eso {@code <} y no
+     * {@code <=}: una actividad no termina hasta que ese día pasa.
+     */
+    List<Activity> findByStatusAndEndDateBefore(ActivityStatus status, LocalDate date);
 
     @Query(value = """
             select new com.verisure.backend.repository.projection.ActivitySummary(
