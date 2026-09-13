@@ -121,8 +121,14 @@ public class RegistrationServiceImpl implements RegistrationService {
 
         log.info("Inscripción {} cancelada por {} · motivo: {}", registrationId, callerEmail, reason);
 
-        Long promotedRegistrationId = spotService.promoteFirstInQueue(
-                registration.getActivity().getId());
+        Long activityId = registration.getActivity().getId();
+        Long promotedRegistrationId = spotService.promoteFirstInQueue(activityId);
+
+        // La plaza se libera aunque no ascienda nadie, así que el estado de la
+        // actividad se sincroniza siempre: promoteFirstInQueue solo lo hace
+        // cuando hay a quién ascender, y sin esto una actividad con la cola
+        // vacía se quedaría en FULL con plazas libres.
+        spotService.refreshFullStatus(activityId);
 
         return new CancelResult(RegistrationResponse.from(registration), promotedRegistrationId);
     }
@@ -135,8 +141,9 @@ public class RegistrationServiceImpl implements RegistrationService {
         return registrationRepository.findMine(user.getId());
     }
 
+    /** Trae la actividad cargada porque el controlador la lee al responder. */
     private Registration findRegistrationOrFail(Long registrationId) {
-        return registrationRepository.findById(registrationId)
+        return registrationRepository.findByIdWithActivity(registrationId)
                 .orElseThrow(() -> NotFoundException.of("inscripción", registrationId));
     }
 

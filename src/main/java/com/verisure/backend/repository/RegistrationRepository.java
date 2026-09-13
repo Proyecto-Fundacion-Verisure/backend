@@ -1,6 +1,7 @@
 package com.verisure.backend.repository;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -39,6 +40,18 @@ public interface RegistrationRepository extends JpaRepository<Registration, Long
      */
     boolean existsByActivityIdAndUserIdAndStatusNot(
             Long activityId, Long userId, RegistrationStatus status);
+
+    /**
+     * Una inscripción con su actividad ya cargada.
+     *
+     * <p>La usan las tres operaciones que devuelven {@code RegistrationResponse},
+     * porque ese {@code record} lee el título de la actividad <b>fuera</b> de la
+     * transacción: con el proxy perezoso sin inicializar ahí revienta con
+     * {@code LazyInitializationException}, y solo en los caminos que no tocan la
+     * actividad por otro motivo.
+     */
+    @Query("select r from Registration r join fetch r.activity where r.id = :registrationId")
+    Optional<Registration> findByIdWithActivity(@Param("registrationId") Long registrationId);
 
     /** Las inscripciones de una persona, para {@code GET /api/registrations/me} · {@code B3-06}. */
     List<Registration> findByUserIdOrderByCreatedAtDesc(Long userId);
