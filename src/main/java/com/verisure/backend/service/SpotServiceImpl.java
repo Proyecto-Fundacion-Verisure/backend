@@ -131,8 +131,9 @@ public class SpotServiceImpl implements SpotService {
         return null;
     }
 
-    /** Renumera la cola a 1, 2, 3… sin huecos tras sacar a alguien de ella. */
-    private void reorderQueue(Long activityId) {
+    @Override
+    @Transactional
+    public void reorderQueue(Long activityId) {
         List<Registration> queue = findQueue(activityId);
 
         int position = 1;

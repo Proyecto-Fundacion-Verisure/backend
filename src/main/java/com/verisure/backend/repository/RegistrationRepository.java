@@ -1,6 +1,7 @@
 package com.verisure.backend.repository;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -8,6 +9,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import com.verisure.backend.dto.registration.MyRegistrationItem;
 import com.verisure.backend.entity.Registration;
 import com.verisure.backend.entity.enums.RegistrationStatus;
 import com.verisure.backend.repository.projection.RegistrationCounts;
@@ -38,6 +40,18 @@ public interface RegistrationRepository extends JpaRepository<Registration, Long
      */
     boolean existsByActivityIdAndUserIdAndStatusNot(
             Long activityId, Long userId, RegistrationStatus status);
+
+    /**
+     * Una inscripción con su actividad ya cargada.
+     *
+     * <p>La usan las tres operaciones que devuelven {@code RegistrationResponse},
+     * porque ese {@code record} lee el título de la actividad <b>fuera</b> de la
+     * transacción: con el proxy perezoso sin inicializar ahí revienta con
+     * {@code LazyInitializationException}, y solo en los caminos que no tocan la
+     * actividad por otro motivo.
+     */
+    @Query("select r from Registration r join fetch r.activity where r.id = :registrationId")
+    Optional<Registration> findByIdWithActivity(@Param("registrationId") Long registrationId);
 
     /** Las inscripciones de una persona, para {@code GET /api/registrations/me} · {@code B3-06}. */
     List<Registration> findByUserIdOrderByCreatedAtDesc(Long userId);
@@ -111,5 +125,34 @@ public interface RegistrationRepository extends JpaRepository<Registration, Long
             where r.activity.id = :activityId
             """)
     RegistrationCounts findCountsByActivityId(@Param("activityId") Long activityId);
+
+    /**
+     * «Mis voluntariados»: las inscripciones de una persona con el estado de su
+     * cierre · {@code B3-06}.
+     *
+     * <p>Tres cosas que alguien desharía por error: el {@code left join} al
+     * partner, porque {@code partner_id} es nulable; el {@code left join} a
+     * {@code ParticipationClosure}, porque la mayoría de inscripciones no tienen
+     * cierre y un {@code join} normal las borraría de la lista; y traer el
+     * cierre aquí y no con una consulta por fila, que sería un N+1.
+     */
+    @Query("""
+            select new com.verisure.backend.dto.registration.MyRegistrationItem(
+                r.id,
+                new com.verisure.backend.dto.registration.MyRegistrationActivity(
+                    a.id, a.title, p.name, a.startDate, a.endDate, a.hours),
+                r.status,
+                r.queuePosition,
+                pc.id,
+                case when r.status = com.verisure.backend.entity.enums.RegistrationStatus.CLOSED
+                     then true else false end)
+            from Registration r
+            join r.activity a
+            left join a.partner p
+            left join ParticipationClosure pc on pc.registration = r
+            where r.user.id = :userId
+            order by a.startDate desc
+            """)
+    List<MyRegistrationItem> findMine(@Param("userId") Long userId);
 
 }
