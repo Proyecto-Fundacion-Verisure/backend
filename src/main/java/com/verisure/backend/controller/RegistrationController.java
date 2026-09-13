@@ -1,5 +1,7 @@
 package com.verisure.backend.controller;
 
+import java.util.List;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -14,7 +16,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.verisure.backend.dto.registration.CancelRequest;
+import com.verisure.backend.dto.registration.CancelResult;
 import com.verisure.backend.dto.registration.CreateRegistrationRequest;
+import com.verisure.backend.dto.registration.MyRegistrationItem;
 import com.verisure.backend.dto.registration.RegistrationResponse;
 import com.verisure.backend.entity.Registration;
 import com.verisure.backend.entity.enums.RegistrationStatus;
@@ -134,5 +139,39 @@ public class RegistrationController {
         notificationService.notifyRegistrationRejected(id);
 
         return RegistrationResponse.from(registration);
+    }
+
+    /**
+     * Cancela una inscripción, la pida su dueña o la administradora.
+     *
+     * <p>Una sola ruta para los dos roles y <b>no hay {@code DELETE}</b>: la
+     * fila se queda en {@code CANCELLED} porque hace falta para la regla de no
+     * repetir inscripción y para que el dashboard no pierda historia. Quién
+     * puede hacer qué lo decide el servicio.
+     *
+     * <p>El cuerpo es opcional: el empleado no manda ninguno.
+     */
+    @PatchMapping("/api/registrations/{id}/cancel")
+    @PreAuthorize("hasAnyRole('EMPLOYEE','ADMIN')")
+    public RegistrationResponse cancel(
+            @PathVariable Long id,
+            @RequestBody(required = false) CancelRequest request,
+            Authentication authentication) {
+
+        String reason = request != null ? request.reason() : null;
+        CancelResult result = registrationService.cancel(id, authentication.getName(), reason);
+
+        if (result.promotedRegistrationId() != null) {
+            notificationService.notifySpotReleased(result.promotedRegistrationId());
+        }
+
+        return result.body();
+    }
+
+    /** «Mis voluntariados»: las inscripciones de quien llama, con su cierre. */
+    @GetMapping("/api/registrations/me")
+    @PreAuthorize("hasRole('EMPLOYEE')")
+    public List<MyRegistrationItem> findMine(Authentication authentication) {
+        return registrationService.findMine(authentication.getName());
     }
 }
