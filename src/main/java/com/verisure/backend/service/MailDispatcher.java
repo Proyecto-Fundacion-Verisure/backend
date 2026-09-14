@@ -1,8 +1,17 @@
 package com.verisure.backend.service;
 
+import java.nio.charset.StandardCharsets;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
+import org.thymeleaf.TemplateEngine;
+import org.thymeleaf.context.Context;
 
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -19,19 +28,60 @@ import lombok.extern.slf4j.Slf4j;
  * <p>El {@code try/catch} está aquí dentro porque una excepción en un método
  * asíncrono no llega a quien lo llamó: sin capturarla no quedaría ni rastro de
  * que los correos no salen.
+ *
+ * <p>Dueña: BE3 · Tarea: B3-09.
  */
 @Slf4j
 @Component
 public class MailDispatcher {
 
+    private final JavaMailSender mailSender;
+    private final TemplateEngine templateEngine;
+    private final String from;
+
+    public MailDispatcher(JavaMailSender mailSender,
+                          TemplateEngine templateEngine,
+                          @Value("${app.mail.from}") String from) {
+        this.mailSender = mailSender;
+        this.templateEngine = templateEngine;
+        this.from = from;
+    }
+
     @Async
-    public void dispatch(String subject, String kind, Long id) {
+    public void dispatch(MailMessage message) {
         try {
-            // TODO B3-09 · sustituir por mailService.send(...) con su plantilla,
-            // construyendo el enlace con app.base-url + la ruta que entrega FE2.
-            log.info("TODO B3-09 · correo «{}» para {} {}", subject, kind, id);
+            mailSender.send(build(message));
+            log.info("Correo «{}» enviado a {}", message.subject(), message.recipient());
         } catch (Exception e) {
-            log.warn("No se pudo enviar «{}» para {} {}: {}", subject, kind, id, e.getMessage());
+            logFailure(message, e);
+        }
+    }
+
+    private MimeMessage build(MailMessage message) throws MessagingException {
+        Context context = new Context();
+        context.setVariables(message.variables());
+        String body = templateEngine.process(message.template(), context);
+
+        MimeMessage mime = mailSender.createMimeMessage();
+        MimeMessageHelper helper = new MimeMessageHelper(mime, false, StandardCharsets.UTF_8.name());
+        helper.setFrom(from);
+        helper.setTo(message.recipient());
+        helper.setSubject(message.subject());
+        helper.setText(body, true);
+        return mime;
+    }
+
+    /**
+     * El fallo del correo de verificación sube a error porque deja a una
+     * entidad bloqueada sin saber por qué; el resto son avisos.
+     */
+    private void logFailure(MailMessage message, Exception e) {
+        if (message.critical()) {
+            log.error("No se pudo enviar «{}» a {}: {}",
+                    message.subject(), message.recipient(), e.getMessage());
+        } else {
+            log.warn("No se pudo enviar «{}» a {}: {}",
+                    message.subject(), message.recipient(), e.getMessage());
         }
     }
 }

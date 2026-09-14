@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<!-- Verificación de correo · Dueña: BE3 · Tarea: B3-13. -->
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{mail/layout :: base(~{::#content})}">
+<body>
+<div id="content">
+    <h1 style="margin:0 0 16px; font-size:20px; color:#27272a;">Verifica tu correo</h1>
+    <p style="margin:0 0 12px;">Hola <span th:text="${userName}">nombre</span>,</p>
+    <p style="margin:0 0 12px;">Para terminar el alta solo falta que confirmes esta dirección.</p>
+    <p th:if="${#strings.isEmpty(verificationLink)}" style="margin:0 0 12px; color:#b91c1c;">
+        El enlace de verificación todavía no está disponible.
+    </p>
+    <p th:unless="${#strings.isEmpty(verificationLink)}" style="margin:28px 0 0;">
+        <a th:href="${verificationLink}" href="#"
+           style="display:inline-block; padding:12px 24px; background-color:#ff6f61;
+                  color:#ffffff; text-decoration:none; border-radius:6px;
+                  font-weight:bold;">Verificar mi correo</a>
+    </p>
+    <p th:unless="${#strings.isEmpty(expiresAt)}" style="margin:16px 0 0; font-size:13px; color:#71717a;">
+        El enlace caduca el <span th:text="${expiresAt}">fecha</span>.
+    </p>
+</div>
+</body>
+</html>

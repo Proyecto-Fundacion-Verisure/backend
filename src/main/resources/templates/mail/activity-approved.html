@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<!-- Actividad aprobada · Dueña: BE3 · Tarea: B3-14. -->
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{mail/layout :: base(~{::#content})}">
+<body>
+<div id="content">
+    <h1 style="margin:0 0 16px; font-size:20px; color:#27272a;">Tu actividad ya está publicada</h1>
+    <p style="margin:0 0 12px;">Hola <span th:text="${userName}">nombre</span>,</p>
+    <p style="margin:0 0 12px;">Hemos aprobado <strong th:text="${activityTitle}">actividad</strong>, que ya aparece en el catálogo y admite inscripciones.</p>
+    <p style="margin:28px 0 0;">
+        <a th:href="${link}" href="#"
+           style="display:inline-block; padding:12px 24px; background-color:#ff6f61;
+                  color:#ffffff; text-decoration:none; border-radius:6px;
+                  font-weight:bold;">Ver la actividad publicada</a>
+    </p>
+</div>
+</body>
+</html>
