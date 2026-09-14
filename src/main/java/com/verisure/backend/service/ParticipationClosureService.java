@@ -1,5 +1,8 @@
 package com.verisure.backend.service;
 
+import org.springframework.web.multipart.MultipartFile;
+
+import com.verisure.backend.dto.closure.CertificateResponse;
 import com.verisure.backend.dto.closure.ClosureDetailResponse;
 import com.verisure.backend.dto.closure.CreateClosureRequest;
 
@@ -27,8 +30,24 @@ public interface ParticipationClosureService {
      *         {@code REGISTRATION_NOT_CONFIRMED} si la inscripción no estaba confirmada,
      *         {@code CLOSURE_ALREADY_CLOSED} si se corrige con la actividad ya cerrada.
      */
-    ClosureDetailResponse submit(CreateClosureRequest request);
+    ClosureDetailResponse submit(CreateClosureRequest request, MultipartFile evidence);
 
-    /** Detalle de un cierre. {@code NOT_OWNER} si no es de quien lo pide y no es administración. */
-    ClosureDetailResponse getById(Long closureId);
+    /**
+     * Detalle de un cierre. {@code NOT_OWNER} si quien lo pide no es el dueño
+     * y no es administración.
+     *
+     * @throws com.verisure.backend.exception.NotFoundException si el cierre no existe,
+     * @throws com.verisure.backend.exception.DomainException {@code NOT_OWNER}
+     *         si no es de quien lo pide y no es administración.
+     */
+    ClosureDetailResponse getById(Long closureId, String userEmail);
+
+    /**
+     * Certificado de participación. Solo la propietaria.
+     *
+     * @throws com.verisure.backend.exception.DomainException
+     *         {@code ACTIVITY_NOT_CLOSED} si la actividad no está cerrada,
+     *         {@code NOT_OWNER} si no es la propietaria.
+     */
+    CertificateResponse getCertificate(Long closureId, String userEmail);
 }
