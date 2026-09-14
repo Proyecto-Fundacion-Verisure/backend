@@ -8,11 +8,15 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.verisure.backend.dto.activity.ActivityResponse;
 import com.verisure.backend.dto.activity.CreateActivityRequest;
+import com.verisure.backend.dto.activity.ImageUploadResponse;
 import com.verisure.backend.service.ActivityService;
+import com.verisure.backend.service.FileStorageService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +33,7 @@ import lombok.RequiredArgsConstructor;
 public class ActivityController {
 
     private final ActivityService activityService;
+    private final FileStorageService fileStorageService;
 
     /** Crea la actividad en DRAFT. Devuelve 201. */
     @PostMapping("/activities")
@@ -37,6 +42,14 @@ public class ActivityController {
             Authentication authentication) {
         ActivityResponse body = activityService.create(request, authentication.getName());
         return ResponseEntity.status(HttpStatus.CREATED).body(body);
+    }
+
+    /** Sube la portada: JPG o PNG, máximo 5 MB. Devuelve 201 con la URL relativa. */
+    @PostMapping("/activity-images")
+    public ResponseEntity<ImageUploadResponse> uploadImage(
+            @RequestParam("image") MultipartFile image) {
+        String url = fileStorageService.store(image, "portadas");
+        return ResponseEntity.status(HttpStatus.CREATED).body(new ImageUploadResponse(url));
     }
 
     /** Publica la actividad: DRAFT → PUBLISHED. */
