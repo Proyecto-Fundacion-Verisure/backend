@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import com.verisure.backend.dto.org.OrgProposalRow;
 import com.verisure.backend.dto.proposal.ProposalRow;
 import com.verisure.backend.entity.Proposal;
 import com.verisure.backend.entity.enums.ProposalStatus;
@@ -52,4 +53,26 @@ public interface ProposalRepository extends JpaRepository<Proposal, Long>{
             where p.id = :proposalId
             """)
     Optional<Proposal> findByIdWithPartner(@Param("proposalId") Long proposalId);
+
+    /**
+     * Las propuestas de una entidad · {@code B2-16}.
+     *
+     * <p>La actividad va en {@code left join}: solo existe en las aceptadas, y
+     * con un {@code join} interno la entidad solo vería esas.
+     */
+    @Query(value = """
+            select new com.verisure.backend.dto.org.OrgProposalRow(
+                p.id, p.description, p.suggestedLine, p.estimatedVolunteers,
+                p.scope, p.status, p.createdAt, a.id)
+            from Proposal p
+            left join p.activity a
+            where p.partner.id = :partnerId
+            order by p.createdAt desc
+            """,
+            countQuery = """
+            select count(p.id)
+            from Proposal p
+            where p.partner.id = :partnerId
+            """)
+    Page<OrgProposalRow> findOrgRows(@Param("partnerId") Long partnerId, Pageable pageable);
 }
