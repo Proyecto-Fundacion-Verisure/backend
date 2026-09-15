@@ -13,7 +13,6 @@ public record ActivityCardResponse(
     LocalDate endDate,
     Integer hours,
     Integer spots,
-    String imageUrl,
     ActivityStatus status) {
 
 }

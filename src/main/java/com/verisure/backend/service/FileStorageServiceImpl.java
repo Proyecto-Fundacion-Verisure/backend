@@ -5,12 +5,10 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
 import java.util.UUID;
 
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.verisure.backend.exception.UnsupportedMediaTypeException;
@@ -20,29 +18,28 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * Guarda los archivos en {@code uploads/<subfolder>/} y devuelve la URL relativa.
  *
- * <p>La subcarpeta va por dominio: {@code portadas} para las actividades (B2-03) y
- * {@code evidencias} para los cierres (B1-03). La carpeta {@code uploads/} se
- * crea al primer guardado; está en {@code .gitignore} y la sirve
- * {@code StaticResourceConfig} bajo {@code /uploads/**}, ruta que pide token.
+ * <p>La subcarpeta va por dominio: {@code evidencias} para los cierres (B1-03).
+ * La carpeta {@code uploads/} se crea al primer guardado; está en
+ * {@code .gitignore} y la sirve {@code StaticResourceConfig} bajo
+ * {@code /uploads/**}, ruta que pide token.
  *
  * <p>El nombre del archivo lo genera el servidor — un UUID — y la extensión sale
- * del tipo ya validado, nunca del nombre que manda el cliente.
+ * del tipo de contenido, nunca del nombre que manda el cliente.
+ *
+ * <p>Este servicio <b>no valida tipo ni tamaño</b>: la validación de la evidencia
+ * (PDF · JPG · PNG, máximo 10 MB) vive en el llamador,
+ * {@code ParticipationClosureServiceImpl.storeEvidence} (B1-03).
  */
 @Slf4j
 @Service
 public class FileStorageServiceImpl implements FileStorageService {
-
-    /** El contrato limita las portadas a 5 MB (docs/api-contract.md §6.3). */
-    private static final long MAX_IMAGE_BYTES = 5L * 1024 * 1024;
-    private static final List<MediaType> SUPPORTED_IMAGE_TYPES =
-            List.of(MediaType.IMAGE_JPEG, MediaType.IMAGE_PNG);
 
     /** Carpeta de trabajo bajo la que se guardan los archivos. */
     private static final String UPLOADS_ROOT = "uploads";
 
     @Override
     public String store(MultipartFile file, String subfolder) {
-        MediaType type = validate(file);
+        MediaType type = parseContentType(file);
         String extension = extensionFor(type);
 
         String filename = UUID.randomUUID() + "." + extension;
@@ -61,41 +58,24 @@ public class FileStorageServiceImpl implements FileStorageService {
         return "/" + UPLOADS_ROOT + "/" + subfolder + "/" + filename;
     }
 
-    /**
-     * Valida que el archivo no venga vacío, no supere 5 MB y sea JPG o PNG.
-     * Devuelve el tipo ya validado para derivar la extensión sin tocar
-     * el nombre original. 413 y 415 los traduce GlobalExceptionHandler.
-     */
-    private MediaType validate(MultipartFile file) {
-        if (file == null || file.isEmpty()) {
-            throw new UnsupportedMediaTypeException("La parte image no puede estar vacía");
-        }
-        if (file.getSize() > MAX_IMAGE_BYTES) {
-            throw new MaxUploadSizeExceededException(MAX_IMAGE_BYTES);
-        }
-
-        MediaType type = parseContentType(file);
-        if (type == null || !isSupported(type)) {
+    /** La extensión se deduce del tipo de contenido, no del nombre del cliente. */
+    private String extensionFor(MediaType type) {
+        if (type == null || type.getSubtype() == null) {
             throw new UnsupportedMediaTypeException("Tipo de archivo no admitido");
         }
-        return type;
+        return switch (type.getSubtype().toLowerCase()) {
+            case "jpeg" -> "jpg";
+            case "png" -> "png";
+            case "pdf" -> "pdf";
+            default -> throw new UnsupportedMediaTypeException("Tipo de archivo no admitido");
+        };
     }
 
-    private boolean isSupported(MediaType type) {
-        return type != null &&
-                SUPPORTED_IMAGE_TYPES.stream().anyMatch(supported -> supported.isCompatibleWith(type));
-    }
-
-    /** La extensión se deduce del tipo validado, no del nombre del cliente. */
-    private String extensionFor(MediaType type) {
-        if (type.isCompatibleWith(MediaType.IMAGE_JPEG)) {
-            return "jpg";
-        }
-        return "png";
-    }
-
-    /** JPG/PNG son tipos seguros del resolver multipart; uno malformado no puede ser soportado. */
+    /** Un tipo malformado no puede derivar extensión y se traduce en 415. */
     private MediaType parseContentType(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new UnsupportedMediaTypeException("El archivo no puede estar vacío");
+        }
         try {
             return MediaType.parseMediaType(file.getContentType());
         } catch (IllegalArgumentException ignored) {
