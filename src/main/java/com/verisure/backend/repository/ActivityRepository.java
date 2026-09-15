@@ -154,7 +154,7 @@ public interface ActivityRepository extends JpaRepository<Activity, Long>{
             left join ActivityClosure ac on ac.activity = a
             where a.status = com.verisure.backend.entity.enums.ActivityStatus.FINISHED
               and (ac is null or ac.status <> com.verisure.backend.entity.enums.ActivityClosureStatus.CLOSED)
-            """);
+            """)
     Page<ActivityClosureRow> findPendingClosure(Pageable pageable);
    /** 
     * Una página del catálogo · {@code B2-07}.
