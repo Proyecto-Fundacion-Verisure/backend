@@ -5,24 +5,24 @@ import java.time.LocalDate;
 import com.verisure.backend.entity.enums.ActivityStatus;
 
 /**
- * Una actividad tal como se pinta en la rejilla del catálogo.
+ * La ficha de una actividad: todo lo de la tarjeta, más lo que solo tiene
+ * sentido con la actividad abierta.
  *
- * <p>No lleva descripción, que en una rejilla no se lee, ni recuento de «me
- * gusta»: el corazón solo va marcado o sin marcar, para que un número bajo no
- * condicione a quien mira la actividad.
- *
- * <p>{@code occupiedSpots} es quien tiene plaza, así que las libres son la
- * resta con {@code spots}. Las de la cola no ocupan.
+ * <p>{@code registrationDeadline} va aquí y no en la tarjeta porque es la fecha
+ * que decide si el botón de apuntarse sigue vivo, y esa decisión se toma
+ * leyendo la ficha.
  */
-public record ActivityCardResponse(
+public record ActivityDetailResponse(
         Long id,
         String title,
         String partnerName,
         String line,
         String mode,
         String location,
+        String description,
         LocalDate startDate,
         LocalDate endDate,
+        LocalDate registrationDeadline,
         Integer hours,
         Integer spots,
         Integer occupiedSpots,
