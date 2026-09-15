@@ -148,7 +148,6 @@ public class ActivityCatalogServiceImpl implements ActivityCatalogService {
                 activity.getHours(),
                 activity.getSpots(),
                 occupiedSpots,
-                activity.getImageUrl(),
                 activity.getStatus(),
                 favoritedByMe);
     }
@@ -170,7 +169,6 @@ public class ActivityCatalogServiceImpl implements ActivityCatalogService {
                 row.hours(),
                 row.spots(),
                 occupiedSpots.getOrDefault(row.id(), 0),
-                row.imageUrl(),
                 row.status(),
                 favorited.contains(row.id()));
     }

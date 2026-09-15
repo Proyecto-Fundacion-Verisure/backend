@@ -325,7 +325,7 @@ ActivityCardResponse {
   id, title, partnerName, line, mode, location,
   startDate, endDate, hours,
   spots, occupiedSpots,
-  imageUrl, status, favoritedByMe
+  status, favoritedByMe
 }
 
 ActivityDetailResponse {
@@ -349,14 +349,14 @@ ActivityDetailResponse {
 | GET | `/api/admin/activities/{id}` | ADMIN | — | 200 `ActivityFormResponse` | 403 · 404 |
 | PUT | `/api/admin/activities/{id}` | ADMIN | `UpdateActivityRequest` | 200 `ActivityResponse` | 409 `ACTIVITY_FINISHED` |
 | PATCH | `/api/admin/activities/{id}/publish` | ADMIN | — | 200 `ActivityResponse` | 409 `ACTIVITY_NOT_EDITABLE` |
-| POST | `/api/admin/activity-images` | ADMIN | multipart, parte `image` | **201** `ImageUploadResponse { url }` | 400 · 403 · 413 · 415 |
 | GET | `/api/admin/activities/pending` | ADMIN | `page` | 200 `Page<ActivityRow>` | 403 |
 | PATCH | `/api/admin/activities/{id}/approve` | ADMIN | — | 200 `ActivityResponse` | 409 |
 | PATCH | `/api/admin/activities/{id}/return` | ADMIN | `ReturnRequest { note }` | 200 `ActivityResponse` | 409 |
 | POST | `/api/admin/activities/refresh-status` | ADMIN | — | 200 `RefreshStatusResponse` | 401 · 403 |
 
 - `GET /api/admin/activities/{id}` admite **cualquier** estado, incluidos `DRAFT` y `CANCELLED`. Es la diferencia con el detalle del catálogo, que solo muestra los estados visibles.
-- La portada acepta **JPG y PNG, máximo 5 MB**. `CreateActivityRequest.imageUrl` usa exactamente la URL que devuelve este endpoint.
+
+- La portada no la sube el backend: es una imagen por defecto por línea (`desoledad` · `educar` · `acoso` · `medioambiente`) que resuelve el frontend. Por eso ni `Activity` ni los DTO de actividad tienen `imageUrl`.
 - `approve` y `return` son para actividades **propuestas por una entidad**. Los cierres **no** se devuelven.
 
 ```

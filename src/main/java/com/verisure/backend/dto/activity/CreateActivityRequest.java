@@ -19,7 +19,6 @@ public record CreateActivityRequest(
     @NotNull LocalDate endDate,
     @NotNull LocalDate registrationDeadline,
     @NotNull Integer hours,
-    @NotNull Integer spots,
-    @Size(max = 255) String imageUrl) {
+    @NotNull Integer spots) {
 
 }

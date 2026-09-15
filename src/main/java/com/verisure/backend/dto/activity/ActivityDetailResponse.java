@@ -26,7 +26,6 @@ public record ActivityDetailResponse(
         Integer hours,
         Integer spots,
         Integer occupiedSpots,
-        String imageUrl,
         ActivityStatus status,
         boolean favoritedByMe) {
 }

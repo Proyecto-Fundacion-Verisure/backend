@@ -1,19 +1,10 @@
+
 package com.verisure.backend.dto.activity;
 
 import java.time.LocalDate;
-
 import com.verisure.backend.entity.enums.ActivityStatus;
 
-/**
- * Una actividad tal como se pinta en la rejilla del catálogo.
- *
- * <p>No lleva descripción, que en una rejilla no se lee, ni recuento de «me
- * gusta»: el corazón solo va marcado o sin marcar, para que un número bajo no
- * condicione a quien mira la actividad.
- *
- * <p>{@code occupiedSpots} es quien tiene plaza, así que las libres son la
- * resta con {@code spots}. Las de la cola no ocupan.
- */
+
 public record ActivityCardResponse(
         Long id,
         String title,
@@ -25,8 +16,7 @@ public record ActivityCardResponse(
         LocalDate endDate,
         Integer hours,
         Integer spots,
-        Integer occupiedSpots,
-        String imageUrl,
-        ActivityStatus status,
+                Integer occupiedSpots,
+                ActivityStatus status,
         boolean favoritedByMe) {
 }

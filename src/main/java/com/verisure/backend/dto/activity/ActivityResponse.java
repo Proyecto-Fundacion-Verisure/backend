@@ -15,7 +15,6 @@ public record ActivityResponse(
     LocalDate registrationDeadline,
     Integer hours,
     Integer spots,
-    String imageUrl,
     ActivityStatus status,
     String partnerName
 ) {

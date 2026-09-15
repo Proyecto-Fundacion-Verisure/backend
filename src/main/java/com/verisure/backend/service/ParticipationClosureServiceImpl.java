@@ -3,6 +3,7 @@ package com.verisure.backend.service;
 import java.time.Instant;
 import java.util.List;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,6 +41,7 @@ public class ParticipationClosureServiceImpl implements ParticipationClosureServ
     private final ParticipationClosureRepository participationClosureRepository;
     private final RegistrationRepository registrationRepository;
     private final UserRepository userRepository;
+    private final FileStorageService fileStorageService;
 
     @Override
     @Transactional
@@ -59,7 +61,14 @@ public class ParticipationClosureServiceImpl implements ParticipationClosureServ
         closure.setSubmittedAt(Instant.now());
         closure.setRegistration(registration);
 
-        return ClosureDetailResponse.from(participationClosureRepository.save(closure));
+        try {
+            return ClosureDetailResponse.from(participationClosureRepository.saveAndFlush(closure));
+        } catch (DataIntegrityViolationException e) {
+            // Salvavidas para una carrera: dos POST simultáneos pasan
+            // ensureNotAlreadyClosed y el segundo revienta el constraint único de
+            // registration_id. El flush fuerza la violación dentro de este catch.
+            throw new DomainException(ErrorCode.CLOSURE_ALREADY_CLOSED);
+        }
     }
 
     @Override
@@ -131,11 +140,13 @@ public class ParticipationClosureServiceImpl implements ParticipationClosureServ
     }
 
     /**
-     * Valida la evidencia si viene; guardarla es de BE2. Sin archivo devuelve {@code null}.
+     * Valida la evidencia si viene y la guarda. Sin archivo devuelve {@code null}.
      *
      * <p>Consent → 400, formato → 415, tamaño → 413: los traduce
      * {@link com.verisure.backend.exception.GlobalExceptionHandler} con la forma
-     * única {@code ApiError}.
+     * única {@code ApiError}. El guardado es de BE2 ({@link FileStorageService}):
+     * genera el nombre en el servidor (nunca el del cliente), deduce la extensión
+     * del tipo de contenido y deja el archivo en {@code uploads/evidencias/}.
      */
     private String storeEvidence(MultipartFile evidence, Boolean evidenceConsent) {
         if (evidence == null || evidence.isEmpty()) {
@@ -154,10 +165,7 @@ public class ParticipationClosureServiceImpl implements ParticipationClosureServ
             throw new UnsupportedMediaTypeException("Tipo de archivo no admitido");
         }
 
-        // TODO B1-03 · BE2: guardar la evidencia con FileStorageService (mismo patrón
-        // que POST /api/admin/activity-images) y devolver su URL. Hasta que exista el
-        // método, evidenceUrl queda null → afecta a evidenceCount (B1-04) y al certificado (B1-06).
-        return null;
+        return fileStorageService.store(evidence, "evidencias");
     }
 
     private boolean isSupported(MediaType type) {
