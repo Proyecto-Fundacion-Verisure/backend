@@ -15,6 +15,7 @@ import jakarta.persistence.LockModeType;
 
 import com.verisure.backend.entity.Activity;
 import com.verisure.backend.entity.enums.ActivityStatus;
+import com.verisure.backend.dto.activityclosure.ActivityClosureRow;
 import com.verisure.backend.repository.projection.ActivityMailView;
 import com.verisure.backend.repository.projection.ActivitySummary;
 import com.verisure.backend.repository.projection.SpotInfo;
@@ -126,5 +127,33 @@ public interface ActivityRepository extends JpaRepository<Activity, Long>{
             where a.id = :activityId
             """)
     Optional<ActivityMailView> findMailViewById(@Param("activityId") Long activityId);
+
+    /**
+     * La cola de cierre de actividades · {@code B1-04}.
+     *
+     * <p>Actividades {@code FINISHED} sin cierre en {@code CLOSED}, por
+     * antigüedad. El {@code left join} a {@code ActivityClosure} es obligatorio
+     * (actividades sin cierre no desaparecen); el de {@code partner} también,
+     * porque una actividad sin entidad no puede quedar fuera de la cola:
+     * {@code partnerName} sale {@code null} (contrato §6.8).
+     */
+    @Query(value = """
+            select new com.verisure.backend.dto.activityclosure.ActivityClosureRow(
+                a.id, a.title, p.name, a.line, a.startDate, a.endDate, a.hours)
+            from Activity a
+            left join ActivityClosure ac on ac.activity = a
+            left join a.partner p
+            where a.status = com.verisure.backend.entity.enums.ActivityStatus.FINISHED
+              and (ac is null or ac.status <> com.verisure.backend.entity.enums.ActivityClosureStatus.CLOSED)
+            order by a.endDate asc
+            """,
+            countQuery = """
+            select count(a)
+            from Activity a
+            left join ActivityClosure ac on ac.activity = a
+            where a.status = com.verisure.backend.entity.enums.ActivityStatus.FINISHED
+              and (ac is null or ac.status <> com.verisure.backend.entity.enums.ActivityClosureStatus.CLOSED)
+            """)
+    Page<ActivityClosureRow> findPendingClosure(Pageable pageable);
 
 }
