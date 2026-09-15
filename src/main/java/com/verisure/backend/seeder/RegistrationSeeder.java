@@ -81,7 +81,7 @@ public class RegistrationSeeder implements CommandLineRunner {
                     true, null, admin, LocalDate.of(2026, 3, 15)));
         }
 
-        // Actividad FULL: 2 confirmadas (= aforo) y 1 en cola
+        // Actividad FULL: 2 confirmadas (= aforo) y 3 en cola, 1 revisada y 2 sin revisar
         registrations.add(registration(careHomeVisits, employees.get(0), RegistrationStatus.CONFIRMED,
                 true, null, admin, LocalDate.now().minusDays(9)));
         registrations.add(registration(careHomeVisits, employees.get(1), RegistrationStatus.CONFIRMED,
@@ -89,6 +89,13 @@ public class RegistrationSeeder implements CommandLineRunner {
         // accepted = true aunque esté en cola: pasó por administración, pero no había hueco
         registrations.add(registration(careHomeVisits, employees.get(2), RegistrationStatus.WAITLISTED,
                 true, 1, admin, LocalDate.now().minusDays(8)));
+        // Sin revisar: nadie las ha decidido todavía. Son las únicas que hacen aparecer
+        // los botones de aceptar y rechazar en el tablero, así que sin ellas esa sección
+        // sale vacía al arrancar y no se puede probar la decisión sin inscribirse antes.
+        registrations.add(registration(careHomeVisits, employees.get(3), RegistrationStatus.WAITLISTED,
+                false, 2, null, LocalDate.now().minusDays(2)));
+        registrations.add(registration(careHomeVisits, employees.get(4), RegistrationStatus.WAITLISTED,
+                false, 3, null, LocalDate.now().minusDays(1)));
 
         // 1 REJECTED · rechazar no admite motivo, por contrato
         registrations.add(registration(beachCleanup, employees.get(3), RegistrationStatus.REJECTED,

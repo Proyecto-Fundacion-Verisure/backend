@@ -10,7 +10,7 @@
 
 **Estado:** borrador pendiente de repasar en voz alta con las tres personas de frontend. Las secciones marcadas con ⚠️ son las que hay que acordar en esa sesión, y siguen todas abiertas.
 
-Lo que ha cambiado desde el 2 de septiembre no es el contrato, sino su coste: **el código de C-03 y C-04 ya está escrito sobre estas decisiones**. Los ocho enumerados, la forma de `ApiError`, los dieciocho códigos, las siete firmas que cruzan dominios, los trece avisos y la cadena de seguridad están implementados tal como se describen aquí. Cambiar cualquiera de los puntos ⚠️ en la sesión ya no es editar un documento: es un cambio de código.
+Lo que ha cambiado desde el 2 de septiembre no es el contrato, sino su coste: **el código de C-03 y C-04 ya está escrito sobre estas decisiones**. Los ocho enumerados, la forma de `ApiError`, los dieciocho códigos, las firmas que cruzan dominios, los trece avisos y la cadena de seguridad están implementados tal como se describen aquí. Cambiar cualquiera de los puntos ⚠️ en la sesión ya no es editar un documento: es un cambio de código.
 
 ---
 
@@ -150,11 +150,11 @@ Los genéricos de HTTP —`UNAUTHORIZED` 401, `FORBIDDEN` 403, `NOT_FOUND` 404, 
 
 ---
 
-## 4 · Las siete firmas que cruzan dominios
+## 4 · Las nueve firmas que cruzan dominios
 
 Existen desde el día 1 aunque devuelvan vacío: es lo que permite que las tres compilen contra ellas sin esperarse. **Ningún dominio escribe directamente transiciones de otro.**
 
-### Cinco de lectura
+### Siete de lectura
 
 | Firma | Dónde vive | La escribe | La usa |
 |---|---|---|---|
@@ -163,6 +163,10 @@ Existen desde el día 1 aunque devuelvan vacío: es lo que permite que las tres 
 | `List<ClosedParticipationView> findClosedForDashboard(Integer year, String line)` | ⚠️ **`ParticipationClosureRepository`** | BE3 | BE1, agregados del dashboard |
 | `Optional<SpotInfo> findSpotInfo(Long activityId)` | `ActivityRepository` | BE2 | BE3, cupo, confirmadas y fecha límite sin tocar `Activity` |
 | `Optional<ParticipationClosure> findByRegistrationId(Long)` | `ParticipationClosureRepository` | BE1 | BE3, para saber si una inscripción ya tiene cierre antes de permitir la baja |
+| `List<Long> findFavoritedActivityIds(Long userId, List<Long> activityIds)` | `FavoriteRepository` | BE3 | BE2, el corazón del catálogo sin una consulta por fila |
+| `List<ActivitySpotCount> countOccupiedSpotsByActivityIds(List<Long> activityIds)` | `RegistrationRepository` | BE3 | BE2, plazas ocupadas del catálogo, del listado de administración y del rol entidad |
+
+> **Las dos últimas nacieron en `B2-07`.** El catálogo necesita el corazón y las plazas ocupadas de cada fila, y las dos cosas son de BE3. Preguntarlas fila a fila con `existsByActivityIdAndUserId` y `countByActivityIdAndStatus` convierte una página de veinte tarjetas en cuarenta consultas, así que las dos reciben los identificadores de la página entera y responden de una vez. **Solo se llaman si la página trae filas**: un `in ()` vacío revienta en algunos motores. `countOccupiedSpotsByActivityIds` **no devuelve las actividades sin ninguna plaza cubierta**, así que quien la consume pone cero por defecto.
 
 > ⚠️ **`findClosedForDashboard` no está donde dice el runbook.** El runbook la sitúa en `RegistrationRepository` devolviendo `List.of()`. Vive en `ParticipationClosureRepository` con una `@Query` real y verificada, por dos razones: como método derivado **tumbaba el arranque de Spring**, y las horas salen de `ParticipationClosure`, no de `Registration`. Además `ClosedParticipationView` es un `record`, así que necesita expresión de constructor.
 
@@ -314,6 +318,28 @@ UserResponse { id, name, email, role, department?, organization? }
 
 Tras cancelar, frontend vuelve a consultar actividad e inscripciones.
 
+**Los filtros de la lista.** `line`, `mode`, `from` y `to` son opcionales y se combinan con Y: los que no llegan no filtran nada. `from` y `to` acotan la **fecha de inicio**, extremos incluidos. La lista muestra los mismos cuatro estados visibles que la ficha.
+
+```
+ActivityCardResponse {
+  id, title, partnerName, line, mode, location,
+  startDate, endDate, hours,
+  spots, occupiedSpots,
+  imageUrl, status, favoritedByMe
+}
+
+ActivityDetailResponse {
+  ...todo lo de la tarjeta, y además:
+  description, registrationDeadline
+}
+```
+
+- **`occupiedSpots`** es quien tiene plaza: las inscripciones `CONFIRMED`, `PENDING_CLOSURE` y `CLOSED`. No es una columna de `Activity`: se cuenta. Las tres cuentan porque al terminar la actividad las confirmadas pasan a los otros dos estados, y contando solo `CONFIRMED` toda actividad terminada saldría con cero plazas ocupadas. Las de la cola no ocupan. Leído al lado de `spots` dice solo que las plazas libres son la resta. El frontend lo pinta hoy como `registeredCount` y tiene que renombrarlo.
+- **`favoritedByMe`** es un booleano y **no hay `favoriteCount`** ni en la tarjeta ni en la ficha. El recuento solo se sirve a la administradora y al dashboard: enseñar «3 me gusta» hace parecer poco interesante una actividad y condiciona a quien la mira.
+- Para `ADMIN`, `favoritedByMe` sale siempre `false`. La administradora no tiene corazón en el catálogo, así que es información correcta y no un caso aparte.
+- **`registrationDeadline` va solo en la ficha**: es la fecha que decide si el botón de apuntarse sigue vivo, y esa decisión se toma con la actividad abierta.
+- `description` no viaja en la tarjeta. En una rejilla no se lee.
+
 ### 6.3 · Actividades · administración
 
 | Método | Ruta | Rol | Recibe | Devuelve | Errores |
@@ -359,6 +385,25 @@ quiere, encaja como botón de mantenimiento en el panel de administración.
 
 Aceptar devuelve **201** y no 200 porque crea una actividad nueva.
 
+```
+ProposalRow {
+  id, partnerName, suggestedLine, estimatedVolunteers,
+  scope, status, createdAt, activityId
+}
+
+ProposalDetailResponse {
+  ...todo lo de la fila, y además:
+  description, contactName, email, phone, consentAt
+}
+```
+
+- **`partnerName` y los tres datos de contacto son nulables.** `POST /api/proposals` es público, así que una organización sin cuenta puede proponer y la propuesta se queda sin entidad detrás. La bandeja tiene que pintar esa fila igual, con los huecos vacíos.
+- **`activityId` es nulable** y solo tiene valor en las `ACCEPTED`: es lo que el frontend necesita para el botón «Ver actividad».
+- `scope` son **personas beneficiarias**, no ámbito geográfico. Va en paralelo a `estimatedVolunteers`, que cuenta a quienes participan.
+- **Tres estados y nada más.** Una propuesta nace `NEW` y ahí se queda hasta que la administradora decide: no hay estado «leída», porque abrirla no aporta información que nadie vaya a usar.
+
+**Qué precarga `accept`.** `Proposal` no tiene título, ni fechas, ni horas, y en `Activity` esos campos son obligatorios, así que solo se pueden precargar cuatro cosas: `description`, `suggestedLine` → `line`, `estimatedVolunteers` → `spots` y la entidad. El resto se rellena con marcadores —título derivado del nombre de la entidad, fechas a partir de hoy, una hora— y la actividad nace en `DRAFT`, que no es visible en ningún catálogo, para que la administradora la complete con `PUT /api/admin/activities/{id}` antes de publicarla.
+
 ### 6.5 · Inscripciones
 
 | Método | Ruta | Rol | Recibe | Devuelve | Errores |
@@ -397,12 +442,21 @@ cifras que además son de toda la actividad y no de la página.
 MyRegistrationItem {
   registrationId,
   activity { id, title, partner, startDate, endDate, hours },
-  status,
+  status, accepted,
   queuePosition?,
   closureId?,
   activityClosed
 }
 ```
+
+⚠️ **`accepted` es una enmienda de BE3 a este bloque**, añadida al integrar «Mis
+voluntariados». Solo dice algo cuando el estado es `WAITLISTED`, y ahí separa dos
+esperas que sin él son indistinguibles: quien sigue pendiente de que administración
+la revise (`accepted = false`) y quien ya pasó por administración y está en cola
+porque no había hueco (`accepted = true`). Es la misma semántica que en
+`RegistrationRow`, y es justo lo que quiere saber quien aguarda plaza. Sin este
+campo la pantalla enseñaba «Pendiente de revisión» a todo el mundo, incluidas las
+ya aceptadas.
 
 ⚠️ **`closureId` y `activityClosed` sustituyen a `reportId` y `reportStatus`.** Como el cierre de participación no tiene estados, el booleano es lo único que permite decidir qué botón pintar:
 
