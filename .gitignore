@@ -1,5 +1,6 @@
 HELP.md
 target/
+/bin/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
@@ -36,5 +37,5 @@ build/
 # Claude Code
 .claude/
 
-# Archivos subidos en local (evidencias y portadas)
+# Archivos subidos en local (evidencias de los cierres)
 /uploads/

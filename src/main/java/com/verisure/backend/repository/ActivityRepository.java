@@ -139,7 +139,7 @@ public interface ActivityRepository extends JpaRepository<Activity, Long>{
     @Query(value = """
             select new com.verisure.backend.repository.projection.ActivityCatalogRow(
                 a.id, a.title, p.name, a.line, a.mode, a.location,
-                a.startDate, a.endDate, a.hours, a.spots, a.imageUrl, a.status)
+                a.startDate, a.endDate, a.hours, a.spots, a.status)
             from Activity a
             left join a.partner p
             where a.status in :statuses

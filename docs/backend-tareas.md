@@ -790,13 +790,15 @@ public interface ActivityMapper {
 
 > **Hecho cuando:** Se crea un borrador y una publicada desde Postman; con fechas incoherentes devuelve 400 con el campo señalado; con token de empleado, 403. Y el mapper de `target/generated-sources` tiene cuerpo de verdad.
 
-#### `B2-03` Subida de la imagen de portada ⬜ · 1,0 d
+#### `B2-03` Subida de la imagen de portada ✅ · 0 d
 
-`POST /api/admin/activity-images`, multipart con la parte `image`. `FileStorageService` valida tipo (**JPG o PNG, máximo 5 MB**), genera el nombre del archivo —**nunca el que envía el cliente**, que es por donde se cuelan rutas maliciosas—, lo guarda y devuelve `ImageUploadResponse { url }`. Esa URL es exactamente la que `CreateActivityRequest.imageUrl` espera.
+**Decidido con el equipo: no hay subida de portada, hay imagen por defecto por línea.**
 
-`/uploads/**` **pide token**: no es una carpeta pública.
+La portada de cada actividad es la imagen de su línea (`desoledad` · `educar` · `acoso` · `medioambiente`), que resuelve el **frontend** a partir del valor de `line`. Por eso `Activity` no tiene `imageUrl` ni existe `POST /api/admin/activity-images`.
 
-> **Hecho cuando:** Se sube una imagen y se recupera por su URL con token; un archivo de 20 MB se rechaza con 413; un GIF, con 415.
+**El `FileStorageService` pasa a ser un servicio de almacenamiento puro** para la evidencia de los cierres (B1-03): genera el nombre en el servidor, deduce la extensión del tipo de contenido y guarda en `uploads/<subfolder>/`. No valida tipo ni tamaño: eso vive en el llamador (`ParticipationClosureServiceImpl.storeEvidence`).
+
+> **Hecho cuando:** `POST /api/admin/activity-images` y el DTO `ImageUploadResponse` desaparecen del código y del contrato; `FileStorageService` queda como único punto de guardado, solo consumido por la evidencia de B1-03.
 
 #### `B2-04` Revisión de PR y tablero ⬜ · 0,5 d
 
