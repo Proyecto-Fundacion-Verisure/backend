@@ -16,6 +16,7 @@ import jakarta.persistence.LockModeType;
 import com.verisure.backend.entity.Activity;
 import com.verisure.backend.entity.enums.ActivityStatus;
 import com.verisure.backend.dto.activityclosure.ActivityClosureRow;
+import com.verisure.backend.repository.projection.ActivityCatalogRow;
 import com.verisure.backend.repository.projection.ActivityMailView;
 import com.verisure.backend.repository.projection.ActivitySummary;
 import com.verisure.backend.repository.projection.SpotInfo;
@@ -153,7 +154,43 @@ public interface ActivityRepository extends JpaRepository<Activity, Long>{
             left join ActivityClosure ac on ac.activity = a
             where a.status = com.verisure.backend.entity.enums.ActivityStatus.FINISHED
               and (ac is null or ac.status <> com.verisure.backend.entity.enums.ActivityClosureStatus.CLOSED)
-            """)
+            """);
     Page<ActivityClosureRow> findPendingClosure(Pageable pageable);
+   /** 
+    * Una página del catálogo · {@code B2-07}.
+     *
+     * <p>La entidad va en {@code left join} y no implícita por {@code a.partner.name}:
+     * una actividad que publica la Fundación por su cuenta no tiene entidad detrás,
+     * y con un {@code join} interno desaparecería del catálogo. {@code from} y
+     * {@code to} acotan la fecha de inicio, extremos incluidos.
+     */
+    @Query(value = """
+            select new com.verisure.backend.repository.projection.ActivityCatalogRow(
+                a.id, a.title, p.name, a.line, a.mode, a.location,
+                a.startDate, a.endDate, a.hours, a.spots, a.imageUrl, a.status)
+            from Activity a
+            left join a.partner p
+            where a.status in :statuses
+              and (:line is null or a.line = :line)
+              and (:mode is null or a.mode = :mode)
+              and (cast(:from as localdate) is null or a.startDate >= :from)
+              and (cast(:to as localdate) is null or a.startDate <= :to)
+            """,
+            countQuery = """
+            select count(a.id)
+            from Activity a
+            where a.status in :statuses
+              and (:line is null or a.line = :line)
+              and (:mode is null or a.mode = :mode)
+              and (cast(:from as localdate) is null or a.startDate >= :from)
+              and (cast(:to as localdate) is null or a.startDate <= :to)
+            """)
+    Page<ActivityCatalogRow> findCatalog(
+            @Param("statuses") List<ActivityStatus> statuses,
+            @Param("line") String line,
+            @Param("mode") String mode,
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to,
+            Pageable pageable);
 
 }

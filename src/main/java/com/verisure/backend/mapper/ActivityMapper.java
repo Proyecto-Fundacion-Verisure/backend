@@ -1,11 +1,8 @@
 package com.verisure.backend.mapper;
 
-import java.util.List;
-
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-import com.verisure.backend.dto.activity.ActivityCardResponse;
 import com.verisure.backend.dto.activity.ActivityResponse;
 import com.verisure.backend.dto.activity.CreateActivityRequest;
 import com.verisure.backend.entity.Activity;
@@ -19,6 +16,9 @@ public interface ActivityMapper {
     @Mapping(source = "partner.name", target = "partnerName")
     ActivityResponse toResponse(Activity activity);
 
-    List<ActivityCardResponse> toCardList(List<Activity> activities);
+    // El catálogo no pasa por aquí: ActivityCardResponse lleva dos campos
+    // calculados —plazas cubiertas y «me gusta» de quien mira— que salen de
+    // consultas distintas, y eso un mapper no lo sabe hacer. Los monta
+    // ActivityCatalogService · B2-07.
 
 }

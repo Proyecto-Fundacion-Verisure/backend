@@ -12,6 +12,7 @@ import org.springframework.data.repository.query.Param;
 import com.verisure.backend.dto.registration.MyRegistrationItem;
 import com.verisure.backend.entity.Registration;
 import com.verisure.backend.entity.enums.RegistrationStatus;
+import com.verisure.backend.repository.projection.ActivitySpotCount;
 import com.verisure.backend.repository.projection.RegistrationCounts;
 import com.verisure.backend.repository.projection.RegistrationMailView;
 import com.verisure.backend.repository.projection.RegistrationRow;
@@ -197,5 +198,27 @@ public interface RegistrationRepository extends JpaRepository<Registration, Long
     List<RegistrationMailView> findMailViewsByActivityIdAndStatusIn(
             @Param("activityId") Long activityId,
             @Param("statuses") List<RegistrationStatus> statuses);
+
+    /**
+     * Plazas cubiertas de varias actividades a la vez · {@code B2-07}.
+     *
+     * <p>Cuenta los tres estados porque al terminar la actividad las confirmadas
+     * pasan a {@code PENDING_CLOSURE} y a {@code CLOSED} sin dejar de ocupar plaza.
+     * Las actividades sin nadie no vuelven en el resultado: quien la llama pone
+     * cero por defecto.
+     */
+    @Query("""
+            select new com.verisure.backend.repository.projection.ActivitySpotCount(
+                r.activity.id, count(r))
+            from Registration r
+            where r.activity.id in :activityIds
+              and r.status in (
+                  com.verisure.backend.entity.enums.RegistrationStatus.CONFIRMED,
+                  com.verisure.backend.entity.enums.RegistrationStatus.PENDING_CLOSURE,
+                  com.verisure.backend.entity.enums.RegistrationStatus.CLOSED)
+            group by r.activity.id
+            """)
+    List<ActivitySpotCount> countOccupiedSpotsByActivityIds(
+            @Param("activityIds") List<Long> activityIds);
 
 }
