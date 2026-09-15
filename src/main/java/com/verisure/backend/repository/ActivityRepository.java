@@ -193,4 +193,16 @@ public interface ActivityRepository extends JpaRepository<Activity, Long>{
             @Param("to") LocalDate to,
             Pageable pageable);
 
+    /**
+     * Las actividades de una entidad · {@code B2-13}.
+     *
+     * <p>El {@code partnerId} lo resuelve el servicio desde el token y nunca
+     * llega por parámetro.
+     */
+    Page<Activity> findByPartnerId(Long partnerId, Pageable pageable);
+
+    /** La misma lista acotada a un estado · {@code B2-13}. */
+    Page<Activity> findByPartnerIdAndStatus(
+            Long partnerId, ActivityStatus status, Pageable pageable);
+
 }
