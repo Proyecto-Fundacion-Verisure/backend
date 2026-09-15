@@ -16,8 +16,7 @@ public record ActivityCardResponse(
         LocalDate endDate,
         Integer hours,
         Integer spots,
-        Integer occupiedSpots,
-        String imageUrl,
-        ActivityStatus status,
+                Integer occupiedSpots,
+                ActivityStatus status,
         boolean favoritedByMe) {
 }

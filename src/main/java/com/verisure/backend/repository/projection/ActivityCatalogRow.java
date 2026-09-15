@@ -24,6 +24,5 @@ public record ActivityCatalogRow(
         LocalDate endDate,
         Integer hours,
         Integer spots,
-        String imageUrl,
         ActivityStatus status) {
 }

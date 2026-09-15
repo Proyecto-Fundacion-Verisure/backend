@@ -325,7 +325,7 @@ ActivityCardResponse {
   id, title, partnerName, line, mode, location,
   startDate, endDate, hours,
   spots, occupiedSpots,
-  imageUrl, status, favoritedByMe
+  status, favoritedByMe
 }
 
 ActivityDetailResponse {
