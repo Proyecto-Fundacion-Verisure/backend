@@ -1,4 +1,6 @@
 
+package com.verisure.backend.dto.activity;
+
 import java.time.LocalDate;
 import com.verisure.backend.entity.enums.ActivityStatus;
 

@@ -63,6 +63,9 @@ private Integer hours;
 @Column(nullable=false)
 private Integer spots;
 
+@Column(name="image_url",length=255)
+private String imageUrl;
+
 @Column(nullable=false, length = 20)
 @Enumerated(EnumType.STRING)
 private ActivityStatus status;
