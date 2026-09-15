@@ -143,6 +143,7 @@ public interface RegistrationRepository extends JpaRepository<Registration, Long
                 new com.verisure.backend.dto.registration.MyRegistrationActivity(
                     a.id, a.title, p.name, a.startDate, a.endDate, a.hours),
                 r.status,
+                r.accepted,
                 r.queuePosition,
                 pc.id,
                 case when r.status = com.verisure.backend.entity.enums.RegistrationStatus.CLOSED
