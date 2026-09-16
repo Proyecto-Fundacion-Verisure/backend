@@ -42,6 +42,7 @@ public class ParticipationClosureServiceImpl implements ParticipationClosureServ
     private final RegistrationRepository registrationRepository;
     private final UserRepository userRepository;
     private final FileStorageService fileStorageService;
+    private final CertificateService certificateService;
 
     @Override
     @Transactional
@@ -84,7 +85,7 @@ public class ParticipationClosureServiceImpl implements ParticipationClosureServ
     @Override
     @Transactional(readOnly = true)
     public CertificateResponse getCertificate(Long closureId, String userEmail) {
-        return null; // TODO B1-06
+        return certificateService.generate(closureId, userEmail);
     }
 
     private ParticipationClosure findClosureOrFail(Long closureId) {
