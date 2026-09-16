@@ -106,6 +106,10 @@ public class ActivityClosureServiceImpl implements ActivityClosureService {
         // Misma transacción (REQUIRED): o cierran actividad e inscripciones, o no cierra nada.
         registrationLifecycle.closeAllForActivity(activityId);
 
+        // Referencia única por participación, en la misma transacción · B1-21.
+        participationClosureRepository.findByRegistration_ActivityId(activityId)
+                .forEach(pc -> { if (pc.getReference() == null) pc.setReference(CertificateReference.forClosure(pc)); });
+
         return toResponse(activity, closure);
     }
 

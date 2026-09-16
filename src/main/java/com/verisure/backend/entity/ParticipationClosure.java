@@ -40,6 +40,9 @@ public class ParticipationClosure {
     @Column(name="submitted_at",nullable=false)
     private Instant submittedAt;
 
+    @Column(length = 20)
+    private String reference;   // nullable hasta que se cierra la actividad
+
     @OneToOne
     @JoinColumn(name="registration_id", nullable=false,unique=true, referencedColumnName="id")
     private Registration registration;
