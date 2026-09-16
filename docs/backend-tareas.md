@@ -804,7 +804,7 @@ La portada de cada actividad es la imagen de su línea (`desoledad` · `educar` 
 
 ### Semana 3
 
-#### `B2-05` Editar y cancelar actividad ⬜ · 1,5 d
+#### `B2-05` Editar y cancelar actividad ⬜ · 1,5 dñ
 
 **`GET /api/admin/activities/{id}`, el que carga el formulario.** Devuelve `ActivityFormResponse` con **todos** los campos que el formulario escribe y funciona con **cualquier estado, incluidos `DRAFT` y `CANCELLED`**. Solo `ADMIN`.
 
