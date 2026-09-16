@@ -1,9 +1,13 @@
 package com.verisure.backend.service;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 import com.verisure.backend.dto.activity.ActivityFormResponse;
 import com.verisure.backend.dto.activity.ActivityResponse;
 import com.verisure.backend.dto.activity.CreateActivityRequest;
 import com.verisure.backend.dto.activity.UpdateActivityRequest;
+import com.verisure.backend.repository.projection.ActivitySummary;
 
 public interface ActivityService {
     ActivityResponse create(CreateActivityRequest request, String createdByEmail);
@@ -35,4 +39,29 @@ public interface ActivityService {
     void cancel(Long activityId);
 
     ActivityResponse publish(Long activityId);
+
+    /**
+     * La cola de actividades propuestas por una entidad y pendientes de revisión
+     * · {@code B2-15}, por antigüedad (la más antigua primero).
+     */
+    Page<ActivitySummary> listPendingApproval(Pageable pageable);
+
+    /**
+     * Aprueba una actividad propuesta y la publica · {@code B2-15}.
+     *
+     * <p>Solo desde {@code PENDING_APPROVAL}: en cualquier otro estado lanza
+     * {@code ACTIVITY_NOT_PENDING_APPROVAL} (409) y no cambia nada.
+     */
+    ActivityResponse approve(Long activityId);
+
+    /**
+     * Devuelve una actividad propuesta a su entidad · {@code B2-15}.
+     *
+     * <p>Solo desde {@code PENDING_APPROVAL}: en cualquier otro estado lanza
+     * {@code ACTIVITY_NOT_PENDING_APPROVAL} (409). La pasa a {@code DRAFT} y
+     * guarda el comentario en {@code reviewNote}. El aviso lo orquesta el
+     * controlador, fuera de la transacción, y la entidad ya no edita hasta que
+     * le devuelven la actividad.
+     */
+    ActivityResponse returnToDraft(Long activityId, String note);
 }

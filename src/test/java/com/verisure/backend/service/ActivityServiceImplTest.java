@@ -16,6 +16,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.data.domain.Pageable;
 
 import com.verisure.backend.dto.activity.ActivityFormResponse;
 import com.verisure.backend.dto.activity.UpdateActivityRequest;
@@ -173,5 +174,79 @@ class ActivityServiceImplTest {
         when(activityRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThrows(NotFoundException.class, () -> service.cancel(99L));
+    }
+
+    @Test
+    void approve_pendingApprovalPublishesAndClearsReviewNote() {
+        Activity activity = activity(31L, ActivityStatus.PENDING_APPROVAL);
+        activity.setReviewNote("Completa la descripción.");
+        when(activityRepository.findById(31L)).thenReturn(Optional.of(activity));
+        when(activityRepository.save(any(Activity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.approve(31L);
+
+        ArgumentCaptor<Activity> captor = ArgumentCaptor.forClass(Activity.class);
+        verify(activityRepository).save(captor.capture());
+        assertEquals(ActivityStatus.PUBLISHED, captor.getValue().getStatus());
+        assertNull(captor.getValue().getReviewNote(), "al aprobar se limpia el comentario anterior");
+    }
+
+    @Test
+    void approve_notPendingThrowsConflict() {
+        Activity activity = activity(7L, ActivityStatus.PUBLISHED);
+        when(activityRepository.findById(7L)).thenReturn(Optional.of(activity));
+
+        DomainException ex = assertThrows(DomainException.class, () -> service.approve(7L));
+
+        assertEquals(ErrorCode.ACTIVITY_NOT_PENDING_APPROVAL, ex.getErrorCode());
+        verify(activityRepository, never()).save(any(Activity.class));
+    }
+
+    @Test
+    void approve_missingThrowsNotFound() {
+        when(activityRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThrows(NotFoundException.class, () -> service.approve(99L));
+    }
+
+    @Test
+    void returnToDraft_pendingApprovalGoesToDraftAndKeepsTheNote() {
+        Activity activity = activity(32L, ActivityStatus.PENDING_APPROVAL);
+        when(activityRepository.findById(32L)).thenReturn(Optional.of(activity));
+        when(activityRepository.save(any(Activity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.returnToDraft(32L, "Completa la descripción.");
+
+        ArgumentCaptor<Activity> captor = ArgumentCaptor.forClass(Activity.class);
+        verify(activityRepository).save(captor.capture());
+        assertEquals(ActivityStatus.DRAFT, captor.getValue().getStatus());
+        assertEquals("Completa la descripción.", captor.getValue().getReviewNote());
+    }
+
+    @Test
+    void returnToDraft_notPendingThrowsConflict() {
+        Activity activity = activity(7L, ActivityStatus.PUBLISHED);
+        when(activityRepository.findById(7L)).thenReturn(Optional.of(activity));
+
+        DomainException ex = assertThrows(
+                DomainException.class, () -> service.returnToDraft(7L, "Corrige la fecha."));
+
+        assertEquals(ErrorCode.ACTIVITY_NOT_PENDING_APPROVAL, ex.getErrorCode());
+        verify(activityRepository, never()).save(any(Activity.class));
+    }
+
+    @Test
+    void returnToDraft_missingThrowsNotFound() {
+        when(activityRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThrows(NotFoundException.class, () -> service.returnToDraft(99L, "Corrige."));
+    }
+
+    @Test
+    void listPendingApproval_delegatesToRepository() {
+        Pageable pageable = Pageable.ofSize(10);
+        service.listPendingApproval(pageable);
+
+        verify(activityRepository).findPendingApproval(pageable);
     }
 }
