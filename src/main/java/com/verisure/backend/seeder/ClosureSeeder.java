@@ -19,6 +19,7 @@ import com.verisure.backend.entity.enums.RegistrationStatus;
 import com.verisure.backend.repository.ActivityClosureRepository;
 import com.verisure.backend.repository.ParticipationClosureRepository;
 import com.verisure.backend.repository.RegistrationRepository;
+import com.verisure.backend.service.CertificateReference;
 
 import lombok.RequiredArgsConstructor;
 
@@ -50,6 +51,7 @@ public class ClosureSeeder implements CommandLineRunner {
     @Override
     public void run(String... args) {
         if (participationClosureRepository.count() > 0 || activityClosureRepository.count() > 0) {
+            backfillReferences(); // B1-21: cierres sembrados antes no tenían referencia.
             return; // idempotente: no duplica al reiniciar
         }
 
@@ -80,6 +82,8 @@ public class ClosureSeeder implements CommandLineRunner {
 
         participationClosureRepository.saveAll(closures);
 
+        backfillReferences(); // B1-21: asigna referencia a lo recién sembrado.
+
         List<ActivityClosure> activityClosures = new ArrayList<>();
         if (!closed.isEmpty()) {
             activityClosures.add(activityClosure(closed.get(0).getActivity(),
@@ -96,6 +100,15 @@ public class ClosureSeeder implements CommandLineRunner {
                     null, null));
         }
         activityClosureRepository.saveAll(activityClosures);
+    }
+
+    /** B1-21 · Asigna la referencia del certificado a todo cierre sin ella. Idempotente. */
+    private void backfillReferences() {
+        List<ParticipationClosure> missing = participationClosureRepository.findAll().stream()
+                .filter(pc -> pc.getReference() == null)
+                .toList();
+        missing.forEach(pc -> pc.setReference(CertificateReference.forClosure(pc)));
+        participationClosureRepository.saveAll(missing);
     }
 
     private List<Registration> byStatus(RegistrationStatus status) {

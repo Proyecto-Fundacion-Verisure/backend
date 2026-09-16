@@ -13,9 +13,14 @@ import com.verisure.backend.dto.closure.CertificateResponse;
 public interface CertificateService {
 
     /**
+     * Genera el certificado de participación.
+     *
+     * @param closureId identificador del cierre de participación
+     * @param userEmail correo de quien pide (el del token)
+     * @throws com.verisure.backend.exception.NotFoundException si el cierre no existe,
      * @throws com.verisure.backend.exception.DomainException
-     *         {@code ACTIVITY_NOT_CLOSED} si la actividad aún no se ha cerrado,
-     *         {@code NOT_OWNER} si el cierre no es de quien lo pide.
+     *         {@code NOT_OWNER} si el cierre no es de quien lo pide,
+     *         {@code ACTIVITY_NOT_CLOSED} si la actividad aún no se ha cerrado.
      */
-    CertificateResponse generate(Long closureId);
+    CertificateResponse generate(Long closureId, String userEmail);
 }
