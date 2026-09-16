@@ -1,6 +1,9 @@
 package com.verisure.backend.service;
 
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -11,6 +14,7 @@ import java.util.Optional;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import com.verisure.backend.entity.User;
 import com.verisure.backend.entity.enums.RegistrationStatus;
 import com.verisure.backend.entity.enums.Role;
 import com.verisure.backend.repository.ActivityRepository;
@@ -40,6 +44,7 @@ public class MailContentFactory {
     private static final String CLOSURE = "/closures/";
 
     private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final DateTimeFormatter DATE_TIME = DateTimeFormatter.ofPattern("dd/MM/yyyy 'a las' HH:mm");
 
     /** Estados con plaza o con opción a ella: los que reciben el aviso de cancelación. */
     private static final List<RegistrationStatus> LIVE_STATUSES =
@@ -182,10 +187,11 @@ public class MailContentFactory {
     }
 
     /**
-     * El único que nace incompleto: <b>todavía no hay token de verificación</b>
-     * —es de {@code B1-16}, que no está—, así que el enlace no verifica nada.
-     * Cuando exista, se rellenan aquí {@code verificationLink} y
-     * {@code expiresAt}.
+     * El enlace apunta a la pantalla de estado de la cuenta y lleva el token;
+     * la caducidad se lee del {@code createdAt} del token · {@code B1-15}.
+     *
+     * <p>Si la cuenta no tiene token (las sembradas de la demo), se mandan
+     * huecos y la plantilla avisa de que el enlace todavía no está disponible.
      */
     public List<MailMessage> verificationRequested(Long userId) {
         UserMailView user = findUser(userId);
@@ -195,8 +201,18 @@ public class MailContentFactory {
 
         Map<String, Object> variables = new HashMap<>();
         variables.put("userName", user.userName());
-        variables.put("verificationLink", ""); // TODO B1-16 · falta el token
-        variables.put("expiresAt", "");
+        String token = user.verificationToken();
+        Instant createdAt = user.verificationCreatedAt();
+        if (token != null && createdAt != null) {
+            variables.put("verificationLink",
+                    link("/account-status?token=" + token));
+            variables.put("expiresAt", format(
+                    LocalDateTime.ofInstant(createdAt.plus(User.VERIFICATION_TTL),
+                            ZoneId.systemDefault())));
+        } else {
+            variables.put("verificationLink", "");
+            variables.put("expiresAt", "");
+        }
 
         return List.of(new MailMessage(user.userEmail(), "Verifica tu correo",
                 "mail/verification-requested", variables, true));
@@ -302,5 +318,12 @@ public class MailContentFactory {
             return "";
         }
         return date.format(DATE);
+    }
+
+    private String format(LocalDateTime dateTime) {
+        if (dateTime == null) {
+            return "";
+        }
+        return dateTime.format(DATE_TIME);
     }
 }

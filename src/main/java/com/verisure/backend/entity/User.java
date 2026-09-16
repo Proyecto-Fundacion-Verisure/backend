@@ -1,5 +1,7 @@
 package com.verisure.backend.entity;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -59,6 +61,25 @@ public class User {
     @Column(nullable = false, length = 20)
     @Enumerated(EnumType.STRING)
     private UserStatus status;
+
+    /** Vigencia del enlace de verificación · {@code B1-15}. */
+    public static final Duration VERIFICATION_TTL = Duration.ofHours(24);
+
+    /** Token aleatorio del enlace de verificación · {@code B1-15}. */
+    @Column(nullable = true, length = 64)
+    private String verificationToken;
+
+    /** Cuándo se generó el token, para hacerlo caducar a las 24 horas. */
+    @Column(nullable = true)
+    private Instant verificationTokenCreatedAt;
+
+    /** Cuándo se verificó el correo. Nulo mientras no se confirme; sirve de marca de usado. */
+    @Column(nullable = true)
+    private Instant verifiedAt;
+
+    /** Fecha de solicitud del alta: la «requestedAt» de la vista de administración. */
+    @Column(nullable = true)
+    private Instant createdAt;
 
     @JsonIgnore
     @OneToMany(mappedBy = "user")
