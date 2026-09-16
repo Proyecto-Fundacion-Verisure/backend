@@ -28,7 +28,7 @@ import lombok.RequiredArgsConstructor;
  *
  * <p>Es el seeder del que depende la demo entera: las tres registrations en
  * {@code CLOSED} de «Acompañamiento a mayores» son <b>las únicas filas que ve el
- * dashboard</b>, porque {@code findClosedForDashboard} filtra por ese estado. Si
+ * dashboard</b>, porque {@code findDashboardData} filtra por ese estado. Si
  * alguien las cambia, el dashboard sale vacío y nada lo avisa.
  *
  * <p>Dentro de una misma actividad no se repite ninguna empleada: la regla «no

@@ -1,6 +1,7 @@
 package com.verisure.backend.service;
 
 import java.io.ByteArrayOutputStream;
+import java.util.List;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +21,7 @@ import com.verisure.backend.dto.dashboard.DepartmentEntry;
 import com.verisure.backend.dto.dashboard.DistributionEntry;
 import com.verisure.backend.dto.dashboard.EffectivenessMetric;
 import com.verisure.backend.dto.dashboard.FavoriteRankingEntry;
+import com.verisure.backend.dto.dashboard.ParticipationEntry;
 
 import lombok.RequiredArgsConstructor;
 
@@ -53,9 +55,24 @@ public class PdfExportServiceImpl implements PdfExportService {
                 document.add(departmentsTable(data));
             }
 
+            if (!data.participationByOrganization().isEmpty()) {
+                document.add(new Paragraph("Participación por organización", sectionFont()));
+                document.add(participationTable("Organización", data.participationByOrganization()));
+            }
+
+            if (!data.participationByLine().isEmpty()) {
+                document.add(new Paragraph("Participación por línea de acción", sectionFont()));
+                document.add(participationTable("Línea de acción", data.participationByLine()));
+            }
+
             if (!data.distributionByMode().isEmpty()) {
                 document.add(new Paragraph("Distribución por modalidad", sectionFont()));
-                document.add(distributionTable(data.distributionByMode()));
+                document.add(distributionTable("Modalidad", data.distributionByMode()));
+            }
+
+            if (!data.distributionByLocation().isEmpty()) {
+                document.add(new Paragraph("Distribución por ubicación", sectionFont()));
+                document.add(distributionTable("Ubicación", data.distributionByLocation()));
             }
 
             if (!data.favoriteRanking().isEmpty()) {
@@ -110,8 +127,17 @@ public class PdfExportServiceImpl implements PdfExportService {
         return table;
     }
 
-    private PdfPTable distributionTable(java.util.List<DistributionEntry> entries) {
-        PdfPTable table = headerTable("Modalidad / ubicación", "%");
+    private PdfPTable participationTable(String header, List<ParticipationEntry> entries) {
+        PdfPTable table = headerTable(header, "Participantes");
+        for (ParticipationEntry entry : entries) {
+            table.addCell(valueCell(entry.label()));
+            table.addCell(valueCell(String.valueOf(entry.participants())));
+        }
+        return table;
+    }
+
+    private PdfPTable distributionTable(String header, List<DistributionEntry> entries) {
+        PdfPTable table = headerTable(header, "%");
         for (DistributionEntry entry : entries) {
             table.addCell(valueCell(entry.label()));
             table.addCell(valueCell(String.format("%.1f %%", entry.value())));

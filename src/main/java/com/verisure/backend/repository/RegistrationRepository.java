@@ -24,7 +24,7 @@ public interface RegistrationRepository extends JpaRepository<Registration, Long
     List<Registration> findByActivityIdAndStatusOrderByQueuePosition(
             Long activityId, RegistrationStatus status);
 
-    // findClosedForDashboard vive en ParticipationClosureRepository: la consulta
+    // findDashboardData vive en ParticipationClosureRepository: la consulta
     // arranca en ParticipationClosure, que es de donde salen las horas reales.
 
     /**

@@ -9,7 +9,6 @@ import org.springframework.data.repository.query.Param;
 
 import com.verisure.backend.entity.ParticipationClosure;
 import com.verisure.backend.repository.projection.ActivityClosureAggregates;
-import com.verisure.backend.repository.projection.ClosedParticipationView;
 import com.verisure.backend.repository.projection.DashboardClosedRow;
 import com.verisure.backend.repository.projection.PartnerDashboardRow;
 
@@ -22,31 +21,6 @@ public interface ParticipationClosureRepository extends JpaRepository<Participat
      * del certificado al cerrar la actividad · B1-21.
      */
     List<ParticipationClosure> findByRegistration_ActivityId(Long activityId);
-
-    /**
-     * Agregado de participaciones cerradas para el dashboard de la Fundación.
-     *
-     * <p>Lleva {@code @Query} porque el nombre no es derivable y porque
-     * {@link ClosedParticipationView} es un {@code record}, no una interfaz de
-     * proyección: hace falta una expresión de constructor. El {@code cast} de
-     * {@code organization} es necesario porque en la entidad es un enumerado y
-     * el {@code record} espera un {@code String}.
-     *
-     * <p>Ambos filtros son opcionales: si llegan a {@code null} no filtran.
-     */
-    @Query("""
-            select new com.verisure.backend.repository.projection.ClosedParticipationView(
-                u.department, cast(u.organization as string), a.line, pc.actualHours, a.endDate)
-            from ParticipationClosure pc
-              join pc.registration r
-              join r.user u
-              join r.activity a
-            where r.status = com.verisure.backend.entity.enums.RegistrationStatus.CLOSED
-              and (:year is null or year(a.endDate) = :year)
-              and (:line is null or a.line = :line)
-            """)
-    List<ClosedParticipationView> findClosedForDashboard(@Param("year") Integer year,
-                                                         @Param("line") String line);
 
     /**
      * Totales de participación de una actividad, para la pantalla de cierre de

@@ -1,6 +1,7 @@
 package com.verisure.backend.service;
 
 import java.util.List;
+import java.util.function.UnaryOperator;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,8 +35,8 @@ public class CsvExportServiceImpl implements CsvExportService {
         for (DashboardClosedRow row : rows) {
             csv.append(escape("P-" + row.closureId())).append(SEPARATOR)
                     .append(escape(row.activityTitle())).append(SEPARATOR)
-                    .append(escape(row.line())).append(SEPARATOR)
-                    .append(escape(toModeLabel(row.mode()))).append(SEPARATOR)
+                    .append(escape(label(row.line(), DashboardLabels::line))).append(SEPARATOR)
+                    .append(escape(label(row.mode(), DashboardLabels::mode))).append(SEPARATOR)
                     .append(row.actualHours() == null ? 0 : row.actualHours()).append(SEPARATOR)
                     .append(escape(row.department())).append(SEPARATOR)
                     .append(escape(row.location())).append(SEPARATOR)
@@ -68,22 +69,15 @@ public class CsvExportServiceImpl implements CsvExportService {
         if (value == null) {
             return "";
         }
-        if (value.contains(SEPARATOR) || value.contains("\"")
-                || value.contains("\n") || value.contains("\r")) {
+        boolean needsQuoting = value.contains(SEPARATOR) || value.contains("\"")
+                || value.contains("\n") || value.contains("\r");
+        if (needsQuoting) {
             return "\"" + value.replace("\"", "\"\"") + "\"";
         }
         return value;
     }
 
-    private String toModeLabel(String mode) {
-        if (mode == null) {
-            return "";
-        }
-        return switch (mode) {
-            case "PRESENCIAL" -> "Presencial";
-            case "ONLINE" -> "Virtual";
-            case "MIXTO" -> "Híbrida";
-            default -> mode;
-        };
+    private String label(String rawValue, UnaryOperator<String> toLabel) {
+        return rawValue == null ? "" : toLabel.apply(rawValue);
     }
 }

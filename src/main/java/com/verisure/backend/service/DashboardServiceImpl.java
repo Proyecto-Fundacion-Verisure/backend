@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.PageRequest;
@@ -18,6 +19,7 @@ import com.verisure.backend.dto.dashboard.DistributionEntry;
 import com.verisure.backend.dto.dashboard.EffectivenessMetric;
 import com.verisure.backend.dto.dashboard.FavoriteRankingEntry;
 import com.verisure.backend.dto.dashboard.ImpactVariations;
+import com.verisure.backend.dto.dashboard.ParticipationEntry;
 import com.verisure.backend.entity.enums.Role;
 import com.verisure.backend.repository.ActivityRepository;
 import com.verisure.backend.repository.FavoriteRepository;
@@ -46,7 +48,7 @@ public class DashboardServiceImpl implements DashboardService {
         List<DashboardClosedRow> rows = participationClosureRepository.findDashboardData(year, line);
 
         if (rows.isEmpty()) {
-            return DashboardResponse.empty(computeVariations(List.of()));
+            return DashboardResponse.empty(ImpactVariations.empty());
         }
 
         return new DashboardResponse(
@@ -57,6 +59,8 @@ public class DashboardServiceImpl implements DashboardService {
                 computeVariations(rows),
                 effectiveness(rows, year, line),
                 byDepartment(rows),
+                byOrganization(rows),
+                byLine(rows),
                 byMode(rows),
                 byLocation(rows),
                 ranking(year, line),
@@ -172,6 +176,35 @@ public class DashboardServiceImpl implements DashboardService {
                 .toList();
     }
 
+    /**
+     * Personas distintas por organización.
+     *
+     * <p>Las cuentas de entidad no tienen organización, así que el filtro de
+     * nulos ya las deja fuera, como pide el contrato.
+     */
+    private List<ParticipationEntry> byOrganization(List<DashboardClosedRow> rows) {
+        return participantsBy(rows, DashboardClosedRow::organization, DashboardLabels::organization);
+    }
+
+    /** Personas distintas por línea de acción. */
+    private List<ParticipationEntry> byLine(List<DashboardClosedRow> rows) {
+        return participantsBy(rows, DashboardClosedRow::line, DashboardLabels::line);
+    }
+
+    private List<ParticipationEntry> participantsBy(List<DashboardClosedRow> rows,
+                                                    Function<DashboardClosedRow, String> key,
+                                                    Function<String, String> label) {
+        Map<String, Set<Long>> byKey = rows.stream()
+                .filter(r -> key.apply(r) != null)
+                .collect(Collectors.groupingBy(key,
+                        Collectors.mapping(DashboardClosedRow::userId, Collectors.toSet())));
+
+        return byKey.entrySet().stream()
+                .map(e -> new ParticipationEntry(e.getKey(), label.apply(e.getKey()), e.getValue().size()))
+                .sorted(Comparator.comparingLong(ParticipationEntry::participants).reversed())
+                .toList();
+    }
+
     private List<DistributionEntry> byMode(List<DashboardClosedRow> rows) {
         Map<String, Long> counts = rows.stream()
                 .filter(r -> r.mode() != null)
@@ -189,12 +222,7 @@ public class DashboardServiceImpl implements DashboardService {
     }
 
     private DistributionEntry toModeEntry(String mode, double percentage) {
-        return switch (mode) {
-            case "PRESENCIAL" -> new DistributionEntry("in-person", "Presencial", percentage);
-            case "ONLINE" -> new DistributionEntry("virtual", "Virtual", percentage);
-            case "MIXTO" -> new DistributionEntry("hybrid", "Híbrida", percentage);
-            default -> new DistributionEntry(mode.toLowerCase(), mode, percentage);
-        };
+        return new DistributionEntry(DashboardLabels.modeId(mode), DashboardLabels.mode(mode), percentage);
     }
 
     private List<DistributionEntry> byLocation(List<DashboardClosedRow> rows) {

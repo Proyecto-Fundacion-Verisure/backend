@@ -26,6 +26,8 @@ public record DashboardResponse(
         ImpactVariations impactVariations,
         List<EffectivenessMetric> effectiveness,
         List<DepartmentEntry> participationByDepartment,
+        List<ParticipationEntry> participationByOrganization,
+        List<ParticipationEntry> participationByLine,
         List<DistributionEntry> distributionByMode,
         List<DistributionEntry> distributionByLocation,
         List<FavoriteRankingEntry> favoriteRanking,
@@ -35,7 +37,7 @@ public record DashboardResponse(
         return new DashboardResponse(
                 0, 0, 0, 0,
                 variations,
-                List.of(), List.of(), List.of(), List.of(), List.of(),
+                List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of(),
                 LocalDate.now());
     }
 }
