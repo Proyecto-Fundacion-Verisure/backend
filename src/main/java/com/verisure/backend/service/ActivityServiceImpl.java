@@ -1,5 +1,7 @@
 package com.verisure.backend.service;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +18,7 @@ import com.verisure.backend.exception.NotFoundException;
 import com.verisure.backend.mapper.ActivityMapper;
 import com.verisure.backend.repository.ActivityRepository;
 import com.verisure.backend.repository.UserRepository;
+import com.verisure.backend.repository.projection.ActivitySummary;
 
 import lombok.RequiredArgsConstructor;
 
@@ -82,6 +85,36 @@ public class ActivityServiceImpl implements ActivityService {
         return activityMapper.toResponse(activityRepository.save(activity));
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ActivitySummary> listPendingApproval(Pageable pageable) {
+        return activityRepository.findPendingApproval(pageable);
+    }
+
+    @Override
+    @Transactional
+    public ActivityResponse approve(Long activityId) {
+        Activity activity = findActivityOrThrow(activityId);
+        assertPendingApproval(activity);
+
+        activity.setStatus(ActivityStatus.PUBLISHED);
+        activity.setReviewNote(null);
+
+        return activityMapper.toResponse(activityRepository.save(activity));
+    }
+
+    @Override
+    @Transactional
+    public ActivityResponse returnToDraft(Long activityId, String note) {
+        Activity activity = findActivityOrThrow(activityId);
+        assertPendingApproval(activity);
+
+        activity.setStatus(ActivityStatus.DRAFT);
+        activity.setReviewNote(note);
+
+        return activityMapper.toResponse(activityRepository.save(activity));
+    }
+
     private Activity findActivityOrThrow(Long activityId) {
         return activityRepository.findById(activityId)
                 .orElseThrow(() -> NotFoundException.of("Activity", activityId));
@@ -98,6 +131,17 @@ public class ActivityServiceImpl implements ActivityService {
         }
         if (activity.getStatus() == ActivityStatus.CANCELLED) {
             throw new DomainException(ErrorCode.ACTIVITY_NOT_EDITABLE);
+        }
+    }
+
+    /**
+     * Solo las actividades propuestas por una entidad pasan por revisión ·
+     * {@code B2-15}. En cualquier otro estado, aprobar o devolver es un error
+     * de conflicto.
+     */
+    private void assertPendingApproval(Activity activity) {
+        if (activity.getStatus() != ActivityStatus.PENDING_APPROVAL) {
+            throw new DomainException(ErrorCode.ACTIVITY_NOT_PENDING_APPROVAL);
         }
     }
 }

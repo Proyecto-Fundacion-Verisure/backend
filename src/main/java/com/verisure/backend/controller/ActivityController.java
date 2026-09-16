@@ -1,5 +1,9 @@
 package com.verisure.backend.controller;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -15,7 +19,9 @@ import org.springframework.web.bind.annotation.RestController;
 import com.verisure.backend.dto.activity.ActivityFormResponse;
 import com.verisure.backend.dto.activity.ActivityResponse;
 import com.verisure.backend.dto.activity.CreateActivityRequest;
+import com.verisure.backend.dto.activity.ReturnActivityRequest;
 import com.verisure.backend.dto.activity.UpdateActivityRequest;
+import com.verisure.backend.repository.projection.ActivitySummary;
 import com.verisure.backend.service.ActivityService;
 import com.verisure.backend.service.NotificationService;
 
@@ -77,5 +83,44 @@ public class ActivityController {
     @PatchMapping("/activities/{id}/publish")
     public ActivityResponse publish(@PathVariable Long id) {
         return activityService.publish(id);
+    }
+
+    /**
+     * La cola de actividades propuestas pendientes de revisión · {@code B2-15},
+     * por antigüedad (la de fecha de inicio más antigua primero).
+     */
+    @GetMapping("/activities/pending")
+    public Page<ActivitySummary> pending(
+            @PageableDefault(sort = "startDate", direction = Sort.Direction.ASC)
+            Pageable pageable) {
+        return activityService.listPendingApproval(pageable);
+    }
+
+    /**
+     * Aprueba una actividad propuesta y la publica · {@code B2-15}.
+     *
+     * <p>Da 409 si la actividad no está en {@code PENDING_APPROVAL}. Orquesta el
+     * aviso fuera de la transacción, como el resto de controladores.
+     */
+    @PatchMapping("/activities/{id}/approve")
+    public ActivityResponse approve(@PathVariable Long id) {
+        ActivityResponse approved = activityService.approve(id);
+        notificationService.notifyActivityApproved(id);
+        return approved;
+    }
+
+    /**
+     * Devuelve una actividad propuesta a su entidad con un comentario · {@code B2-15}.
+     *
+     * <p>El comentario es obligatorio: sin él, 400. Da 409 si la actividad no
+     * está en {@code PENDING_APPROVAL}. Orquesta el aviso fuera de la transacción.
+     */
+    @PatchMapping("/activities/{id}/return")
+    public ActivityResponse returnToDraft(
+            @PathVariable Long id,
+            @Valid @RequestBody ReturnActivityRequest request) {
+        ActivityResponse returned = activityService.returnToDraft(id, request.note());
+        notificationService.notifyActivityReturned(id);
+        return returned;
     }
 }

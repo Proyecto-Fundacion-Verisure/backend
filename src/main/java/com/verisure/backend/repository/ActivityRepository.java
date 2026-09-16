@@ -156,6 +156,33 @@ public interface ActivityRepository extends JpaRepository<Activity, Long>{
               and (ac is null or ac.status <> com.verisure.backend.entity.enums.ActivityClosureStatus.CLOSED)
             """)
     Page<ActivityClosureRow> findPendingClosure(Pageable pageable);
+
+    /**
+     * La cola de actividades propuestas por una entidad y pendientes de revisión ·
+     * {@code B2-15}, por antigüedad (la de fecha de inicio más antigua primero).
+     *
+     * <p>La fila reutiliza {@link ActivitySummary}, que es lo que pinta el listado
+     * de administración del frontend. El {@code left join} a favoritos es el del
+     * catálogo: una actividad sin favoritos no desaparece de la cola.
+     */
+    @Query(value = """
+            select new com.verisure.backend.repository.projection.ActivitySummary(
+                a.id, a.title, a.partner.name, a.status,
+                a.startDate, a.endDate, a.spots,
+                count(f))
+            from Activity a
+            left join a.favorites f
+            where a.status = com.verisure.backend.entity.enums.ActivityStatus.PENDING_APPROVAL
+            group by a.id, a.title, a.partner.name, a.status,
+                     a.startDate, a.endDate, a.spots
+            order by a.startDate asc
+            """,
+            countQuery = """
+            select count(a.id)
+            from Activity a
+            where a.status = com.verisure.backend.entity.enums.ActivityStatus.PENDING_APPROVAL
+            """)
+    Page<ActivitySummary> findPendingApproval(Pageable pageable);
    /** 
     * Una página del catálogo · {@code B2-07}.
      *
