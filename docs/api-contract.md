@@ -135,7 +135,9 @@ No lleva el código HTTP: ya viaja en la respuesta.
 | `CLOSURE_ALREADY_CLOSED` | 409 | Corriges tu cierre con la actividad ya cerrada |
 | `ACTIVITY_FINISHED` | 409 | Editas una actividad ya finalizada |
 | `ACTIVITY_NOT_EDITABLE` | 409 | Ya está enviada a revisión o publicada |
+| `ACTIVITY_NOT_PENDING_APPROVAL` | 409 | Apruebas o devuelves algo que no está en revisión |
 | `CIF_ALREADY_REGISTERED` | 409 | Ese correo ya tiene cuenta en esa entidad |
+| `EMAIL_ALREADY_REGISTERED` | 409 | El correo ya está registrado, en cualquier cuenta |
 | `PROPOSAL_ALREADY_DECIDED` | 409 | La propuesta ya se aceptó o rechazó |
 | `VERIFICATION_EXPIRED` | 410 | El enlace del correo caducó |
 | `RATE_LIMIT_EXCEEDED` | 429 | Límite por IP en las rutas públicas · `C-06` |
@@ -293,7 +295,7 @@ El mensaje idéntico para credenciales incorrectas y correo inexistente es delib
 | POST | `/api/auth/login` | público | `LoginRequest { email, password }` | 200 `AuthResponse` | 401 genérico · 403 `ACCOUNT_NOT_VERIFIED` / `ACCOUNT_PENDING_APPROVAL` / `ACCOUNT_REJECTED` |
 | POST | `/api/auth/logout` | autenticado | — | **204** · solo traza | — |
 | GET | `/api/auth/me` | autenticado | — | 200 `UserResponse` | 401 |
-| POST | `/api/auth/register` | público | `RegisterOrgRequest` | **201** | 400 `VALIDATION_ERROR` · 409 `CIF_ALREADY_REGISTERED` · 429 |
+| POST | `/api/auth/register` | público | `RegisterOrgRequest` | **201** | 400 `VALIDATION_ERROR` · 409 `CIF_ALREADY_REGISTERED` / `EMAIL_ALREADY_REGISTERED` · 429 |
 | GET | `/api/auth/verify?token=` | público | token | 200 | 410 `VERIFICATION_EXPIRED` · 429 |
 | POST | `/api/auth/resend-verification` | público | `{ email }` | **204** | 429 `RATE_LIMIT_EXCEEDED` |
 
@@ -303,6 +305,8 @@ UserResponse { id, name, email, role, department?, organization? }
 ```
 
 `organization` es nullable: quien tiene rol de entidad no pertenece ni a Verisure España ni a Verisure Grupo.
+
+**Los dos 409 del registro no son el mismo error y no se pintan en el mismo sitio.** `CIF_ALREADY_REGISTERED` es «ese correo ya tiene cuenta *en esa entidad*», y sale cuando el CIF ya existe y la persona ya figura en ella; `EMAIL_ALREADY_REGISTERED` es «ese correo ya está registrado» en cualquier cuenta del sistema. Los dos apuntan al campo del correo, pero el primero solo tiene sentido leído junto al CIF. Que un CIF ya exista **no** es un error por sí solo: si la entidad está dada de alta y el correo es nuevo, el registro se acepta y la cuenta se cuelga de la entidad que ya había, sin duplicarla.
 
 ### 6.2 · Actividades · catálogo
 
@@ -353,17 +357,27 @@ ActivityDetailResponse {
 
 | Método | Ruta | Rol | Recibe | Devuelve | Errores |
 |---|---|---|---|---|---|
-| GET | `/api/admin/activities` | ADMIN | `status`, `page` | 200 `Page<ActivityRow>` | 403 |
+| GET | `/api/admin/activities` | ADMIN | `status`, `page` | 200 `Page<ActivitySummary>` | 403 |
 | POST | `/api/admin/activities` | ADMIN | `CreateActivityRequest` | **201** `ActivityResponse` | 400 `INVALID_DATE_RANGE` |
 | GET | `/api/admin/activities/{id}` | ADMIN | — | 200 `ActivityFormResponse` | 403 · 404 |
 | PUT | `/api/admin/activities/{id}` | ADMIN | `UpdateActivityRequest` | 200 `ActivityResponse` | 409 `ACTIVITY_FINISHED` |
 | PATCH | `/api/admin/activities/{id}/publish` | ADMIN | — | 200 `ActivityResponse` | 409 `ACTIVITY_NOT_EDITABLE` |
-| GET | `/api/admin/activities/pending` | ADMIN | `page` | 200 `Page<ActivityRow>` | 403 |
-| PATCH | `/api/admin/activities/{id}/approve` | ADMIN | — | 200 `ActivityResponse` | 409 |
-| PATCH | `/api/admin/activities/{id}/return` | ADMIN | `ReturnRequest { note }` | 200 `ActivityResponse` | 409 |
+| GET | `/api/admin/activities/pending` | ADMIN | `page` | 200 `Page<ActivitySummary>` | 403 |
+| PATCH | `/api/admin/activities/{id}/approve` | ADMIN | — | 200 `ActivityResponse` | 409 `ACTIVITY_NOT_PENDING_APPROVAL` |
+| PATCH | `/api/admin/activities/{id}/return` | ADMIN | `ReturnActivityRequest { note }` | 200 `ActivityResponse` | 400 · 409 `ACTIVITY_NOT_PENDING_APPROVAL` |
 | POST | `/api/admin/activities/refresh-status` | ADMIN | — | 200 `RefreshStatusResponse` | 401 · 403 |
 
+```
+ActivitySummary { id, title, partnerName, status, startDate, endDate, spots, favoriteCount }
+```
+
+- **Los dos listados comparten fila y se ordenan al revés.** El general va por `startDate` **descendente** —lo que se viene a tocar aquí es lo próximo, no lo del año pasado— y la cola de revisión por `startDate` **ascendente**, porque eso sí es una cola: lo que lleva más esperando se atiende antes. El `status` del listado general es **opcional**: sin él salen todos los estados.
+
+- **`favoriteCount` sí llega en estas dos rutas**, y no en el catálogo. Es el mismo criterio de siempre: el recuento es información de gestión, y enseñárselo a quien decide si apuntarse condiciona la decisión. Una actividad sin favoritos sale con `0`, no desaparece.
+
 - `GET /api/admin/activities/{id}` admite **cualquier** estado, incluidos `DRAFT` y `CANCELLED`. Es la diferencia con el detalle del catálogo, que solo muestra los estados visibles.
+
+- **`approve` limpia `reviewNote`**: el comentario con el que se devolvió antes una actividad no sobrevive a la aprobación, así que el panel de la entidad deja de enseñarlo.
 
 - La portada no la sube el backend: es una imagen por defecto por línea (`desoledad` · `educar` · `acoso` · `medioambiente`) que resuelve el frontend. Por eso ni `Activity` ni los DTO de actividad tienen `imageUrl`.
 - `approve` y `return` son para actividades **propuestas por una entidad**. Los cierres **no** se devuelven.

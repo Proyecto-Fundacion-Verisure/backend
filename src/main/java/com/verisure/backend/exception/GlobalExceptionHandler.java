@@ -17,6 +17,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
@@ -91,6 +92,26 @@ String dateRangeCode = ValidDateRange.class.getSimpleName();
     public ResponseEntity<ApiError> handleUnreadable(WebRequest request) {
         return ResponseEntity.badRequest().body(ApiError.of(
                 "MALFORMED_REQUEST", "El cuerpo de la petición no se puede leer", path(request)));
+    }
+
+    /**
+     * Un parámetro que no se puede convertir al tipo que espera el controlador:
+     * {@code ?status=LO_QUE_SEA} sobre un enum, o una letra donde va un número.
+     *
+     * <p>Sin esto lo recoge la red de seguridad de abajo y una errata en la
+     * barra de direcciones se devuelve como <b>500</b>, con la traza registrada
+     * como si el servidor estuviera roto. El parámetro viaja en {@code fields}
+     * para que el frontend sepa cuál de ellos rechazar.
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiError> handleTypeMismatch(MethodArgumentTypeMismatchException ex,
+                                                       WebRequest request) {
+        Map<String, List<String>> fields = Map.of(
+                ex.getName(), List.of("El valor no es válido"));
+
+        return ResponseEntity.badRequest().body(ApiError.of(
+                "MALFORMED_REQUEST",
+                "El parámetro " + ex.getName() + " no es válido", path(request), fields));
     }
 
     @ExceptionHandler(AuthenticationException.class)
