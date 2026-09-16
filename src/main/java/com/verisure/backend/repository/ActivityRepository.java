@@ -232,4 +232,24 @@ public interface ActivityRepository extends JpaRepository<Activity, Long>{
     Page<Activity> findByPartnerIdAndStatus(
             Long partnerId, ActivityStatus status, Pageable pageable);
 
+    /**
+     * Plazas ofertadas en las actividades con participación cerrada · {@code B1-07}.
+     *
+     * <p>Es el denominador de «ocupación de plazas». El {@code coalesce} evita
+     * devolver {@code null} cuando ninguna actividad del filtro tiene cierres.
+     */
+    @Query("""
+            select coalesce(sum(a.spots), 0L)
+            from Activity a
+            where a.id in (
+                select distinct a2.id
+                from ParticipationClosure pc
+                  join pc.registration r
+                  join r.activity a2
+                where r.status = com.verisure.backend.entity.enums.RegistrationStatus.CLOSED
+                  and (:year is null or year(a2.endDate) = :year)
+                  and (:line is null or a2.line = :line))
+            """)
+    long sumSpotsInScope(@Param("year") Integer year, @Param("line") String line);
+
 }

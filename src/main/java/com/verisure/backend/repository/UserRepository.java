@@ -73,4 +73,12 @@ public interface UserRepository extends JpaRepository<User, Long> {
     /** La usa el rechazo: no se baja la entidad si alguien dentro sigue activo · {@code B1-16}. */
     long countByPartnerIdAndStatus(Long partnerId, UserStatus status);
 
+    /**
+     * Población de un rol, para la eficacia del dashboard · {@code B1-07}.
+     *
+     * <p>Es el denominador de «participación de la plantilla»: cuántos empleados
+     * había para compararlos con los que al final participaron.
+     */
+    long countByRole(Role role);
+
 }

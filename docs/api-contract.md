@@ -162,7 +162,7 @@ Existen desde el día 1 aunque devuelvan vacío: es lo que permite que las tres 
 |---|---|---|---|
 | `long countByActivityIdAndStatus(Long, RegistrationStatus)` | `RegistrationRepository` | BE3 | BE1, para los confirmados de la pantalla de cierre |
 | `List<Registration> findByActivityIdAndStatusOrderByQueuePosition(Long, RegistrationStatus)` | `RegistrationRepository` | BE3 | BE3 |
-| `List<ClosedParticipationView> findClosedForDashboard(Integer year, String line)` | ⚠️ **`ParticipationClosureRepository`** | BE3 | BE1, agregados del dashboard |
+| `List<DashboardClosedRow> findDashboardData(Integer year, String line)` | `ParticipationClosureRepository` | BE1 | BE1, agregados del dashboard, CSV y PDF |
 | `Optional<SpotInfo> findSpotInfo(Long activityId)` | `ActivityRepository` | BE2 | BE3, cupo, confirmadas y fecha límite sin tocar `Activity` |
 | `Optional<ParticipationClosure> findByRegistrationId(Long)` | `ParticipationClosureRepository` | BE1 | BE3, para saber si una inscripción ya tiene cierre antes de permitir la baja |
 | `List<Long> findFavoritedActivityIds(Long userId, List<Long> activityIds)` | `FavoriteRepository` | BE3 | BE2, el corazón del catálogo sin una consulta por fila |
@@ -170,7 +170,7 @@ Existen desde el día 1 aunque devuelvan vacío: es lo que permite que las tres 
 
 > **Las dos últimas nacieron en `B2-07`.** El catálogo necesita el corazón y las plazas ocupadas de cada fila, y las dos cosas son de BE3. Preguntarlas fila a fila con `existsByActivityIdAndUserId` y `countByActivityIdAndStatus` convierte una página de veinte tarjetas en cuarenta consultas, así que las dos reciben los identificadores de la página entera y responden de una vez. **Solo se llaman si la página trae filas**: un `in ()` vacío revienta en algunos motores. `countOccupiedSpotsByActivityIds` **no devuelve las actividades sin ninguna plaza cubierta**, así que quien la consume pone cero por defecto.
 
-> ⚠️ **`findClosedForDashboard` no está donde dice el runbook.** El runbook la sitúa en `RegistrationRepository` devolviendo `List.of()`. Vive en `ParticipationClosureRepository` con una `@Query` real y verificada, por dos razones: como método derivado **tumbaba el arranque de Spring**, y las horas salen de `ParticipationClosure`, no de `Registration`. Además `ClosedParticipationView` es un `record`, así que necesita expresión de constructor.
+> **`findDashboardData` sustituye a `findClosedForDashboard`** (enmienda de `B1-07`). La firma original de BE3 devolvía `ClosedParticipationView` con cinco columnas; el dashboard necesitaba trece —identificadores de cierre, actividad, persona y entidad, modalidad y ubicación—, así que BE1 escribió `findDashboardData` → `DashboardClosedRow` y la original se retiró para no mantener dos consultas iguales. Vive en `ParticipationClosureRepository` porque las horas salen de `ParticipationClosure`, no de `Registration`; `DashboardClosedRow` es un `record`, así que necesita expresión de constructor.
 
 ### Dos de escritura — las únicas del proyecto
 
@@ -607,11 +607,31 @@ CreateOrgProposalRequest { description, suggestedLine, estimatedVolunteers, scop
 | GET | `/api/dashboard` | ADMIN | `year`, `line` | 200 `DashboardResponse` | 403 |
 | GET | `/api/dashboard/participations.csv` | ADMIN | `year`, `line` | 200 `text/csv` | 403 |
 | GET | `/api/dashboard/partners.csv` | ADMIN | `year` | 200 `text/csv` | 403 |
-| GET | `/api/dashboard/report.pdf` | ADMIN | `year` | 200 `application/pdf` | 403 |
+| GET | `/api/dashboard/report.pdf` | ADMIN | `year`, `line` | 200 `application/pdf` | 403 |
+
+```
+DashboardResponse {
+  reportedHours, activeVolunteers, finishedActivities, activePartners,
+  impactVariations { reportedHours, activeVolunteers, finishedActivities, activePartners },
+  effectiveness[ { id, label, value } ],
+  participationByDepartment[ { department, participants } ],
+  participationByOrganization[ { id, label, participants } ],
+  participationByLine[ { id, label, participants } ],
+  distributionByMode[ { id, label, value } ],
+  distributionByLocation[ { id, label, value } ],
+  favoriteRanking[ { activityId, activityTitle, favoriteCount } ],
+  generatedAt
+}
+```
 
 - Se calcula sobre participaciones **cerradas** (`RegistrationStatus.CLOSED`).
-- **Los agregados por `Organization` excluyen a los usuarios con rol de entidad**, o aparecería una categoría vacía en los gráficos.
-- Las descargas necesitan `Content-Disposition` expuesto en CORS.
+- Las cuatro cifras de cabecera cuentan cosas distintas: horas declaradas sumadas, personas distintas, actividades distintas y entidades distintas (una actividad que publica la Fundación por su cuenta no tiene entidad y no cuenta).
+- `impactVariations` es el porcentaje de variación del último trimestre con datos respecto al anterior; `0` si no hay trimestre anterior.
+- `effectiveness` y las dos `distributionBy*` llevan `value` en porcentaje de 0 a 100. Los `id` son estables y el frontend los usa como clave de pintado: `workforce-participation`, `place-occupancy`, `registration-conversion`; `in-person`, `virtual`, `hybrid`; la ubicación en minúsculas y con guiones.
+- Las tres `participationBy*` cuentan **personas distintas**, no participaciones, para que midan lo mismo. En organización y línea `id` es el valor en crudo (`VERISURE_ES`, `desoledad`) y `label` el texto legible.
+- **Los agregados por `Organization` excluyen a los usuarios con rol de entidad**, que no tienen organización, o aparecería una categoría vacía en los gráficos.
+- `favoriteRanking` son las diez actividades con más «me gusta» dentro de los filtros.
+- Las descargas necesitan `Content-Disposition` expuesto en CORS. `participations.csv` lleva una fila por participación cerrada con identificador seudonimizado (`P-<id>`), sin nombre ni correo; `partners.csv`, una fila por entidad con sus actividades y horas. Los dos con BOM UTF-8 y `;`.
 
 ---
 

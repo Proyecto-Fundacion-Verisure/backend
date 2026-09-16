@@ -24,7 +24,7 @@ public interface RegistrationRepository extends JpaRepository<Registration, Long
     List<Registration> findByActivityIdAndStatusOrderByQueuePosition(
             Long activityId, RegistrationStatus status);
 
-    // findClosedForDashboard vive en ParticipationClosureRepository: la consulta
+    // findDashboardData vive en ParticipationClosureRepository: la consulta
     // arranca en ParticipationClosure, que es de donde salen las horas reales.
 
     /**
@@ -220,5 +220,25 @@ public interface RegistrationRepository extends JpaRepository<Registration, Long
             """)
     List<ActivitySpotCount> countOccupiedSpotsByActivityIds(
             @Param("activityIds") List<Long> activityIds);
+
+    /**
+     * Inscripciones totales de las actividades con participación cerrada · {@code B1-07}.
+     *
+     * <p>Es el denominador de «inscripción → participación»: compara quién dio
+     * el paso final con quién llegó, no solo quién se apuntó.
+     */
+    @Query("""
+            select count(r)
+            from Registration r
+            where r.activity.id in (
+                select distinct a.id
+                from ParticipationClosure pc
+                  join pc.registration rc
+                  join rc.activity a
+                where rc.status = com.verisure.backend.entity.enums.RegistrationStatus.CLOSED
+                  and (:year is null or year(a.endDate) = :year)
+                  and (:line is null or a.line = :line))
+            """)
+    long countAllRegistrationsInScope(@Param("year") Integer year, @Param("line") String line);
 
 }
