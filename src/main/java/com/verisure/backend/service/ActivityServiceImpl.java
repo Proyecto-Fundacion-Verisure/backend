@@ -3,8 +3,10 @@ package com.verisure.backend.service;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.verisure.backend.dto.activity.ActivityFormResponse;
 import com.verisure.backend.dto.activity.ActivityResponse;
 import com.verisure.backend.dto.activity.CreateActivityRequest;
+import com.verisure.backend.dto.activity.UpdateActivityRequest;
 import com.verisure.backend.entity.Activity;
 import com.verisure.backend.entity.User;
 import com.verisure.backend.entity.enums.ActivityStatus;
@@ -24,6 +26,7 @@ public class ActivityServiceImpl implements ActivityService {
     private final ActivityRepository activityRepository;
     private final ActivityMapper activityMapper;
     private final UserRepository userRepository;
+    private final RegistrationLifecycleService registrationLifecycleService;
 
     @Override
     @Transactional
@@ -36,6 +39,38 @@ public class ActivityServiceImpl implements ActivityService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public ActivityFormResponse getForm(Long activityId) {
+        Activity activity = findActivityOrThrow(activityId);
+        return activityMapper.toFormResponse(activity);
+    }
+
+    @Override
+    @Transactional
+    public ActivityResponse update(Long activityId, UpdateActivityRequest request) {
+        Activity activity = findActivityOrThrow(activityId);
+        assertEditable(activity);
+        activityMapper.updateEntity(request, activity);
+        return activityMapper.toResponse(activityRepository.save(activity));
+    }
+
+    @Override
+    @Transactional
+    public void cancel(Long activityId) {
+        Activity activity = findActivityOrThrow(activityId);
+        assertEditable(activity);
+
+        activity.setStatus(ActivityStatus.CANCELLED);
+
+        // La llamada corre dentro de esta transacción: o se cancelan la
+        // actividad y sus inscripciones, o no se cancela ninguna de las dos.
+        // Qué estados pasan a CANCELLED lo decide BE3, no esta clase.
+        registrationLifecycleService.cancelAllForActivity(activityId);
+
+        activityRepository.save(activity);
+    }
+
+    @Override
     @Transactional
     public ActivityResponse publish(Long activityId) {
         Activity activity = activityRepository.findById(activityId)
@@ -45,5 +80,24 @@ public class ActivityServiceImpl implements ActivityService {
         }
         activity.setStatus(ActivityStatus.PUBLISHED);
         return activityMapper.toResponse(activityRepository.save(activity));
+    }
+
+    private Activity findActivityOrThrow(Long activityId) {
+        return activityRepository.findById(activityId)
+                .orElseThrow(() -> NotFoundException.of("Activity", activityId));
+    }
+
+    /**
+     * Las dos reglas de edición de admin · B2-05: una actividad finalizada no se
+     * toca y una cancelada tampoco. El resto —borrador, pendiente, publicada, en
+     * curso, llena— se puede editar.
+     */
+    private void assertEditable(Activity activity) {
+        if (activity.getStatus() == ActivityStatus.FINISHED) {
+            throw new DomainException(ErrorCode.ACTIVITY_FINISHED);
+        }
+        if (activity.getStatus() == ActivityStatus.CANCELLED) {
+            throw new DomainException(ErrorCode.ACTIVITY_NOT_EDITABLE);
+        }
     }
 }
