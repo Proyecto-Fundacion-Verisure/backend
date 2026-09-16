@@ -1,6 +1,7 @@
 package com.verisure.backend.service;
 
 import java.time.Instant;
+import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -14,7 +15,6 @@ import com.verisure.backend.entity.Activity;
 import com.verisure.backend.entity.ActivityClosure;
 import com.verisure.backend.entity.enums.ActivityClosureStatus;
 import com.verisure.backend.entity.enums.ActivityStatus;
-import com.verisure.backend.entity.enums.RegistrationStatus;
 import com.verisure.backend.exception.DomainException;
 import com.verisure.backend.exception.ErrorCode;
 import com.verisure.backend.exception.NotFoundException;
@@ -23,6 +23,7 @@ import com.verisure.backend.repository.ActivityRepository;
 import com.verisure.backend.repository.ParticipationClosureRepository;
 import com.verisure.backend.repository.RegistrationRepository;
 import com.verisure.backend.repository.projection.ActivityClosureAggregates;
+import com.verisure.backend.repository.projection.ActivitySpotCount;
 
 import lombok.RequiredArgsConstructor;
 
@@ -123,8 +124,21 @@ public class ActivityClosureServiceImpl implements ActivityClosureService {
     private ActivityClosureResponse toResponse(Activity activity, ActivityClosure closure) {
         ActivityClosureAggregates agg = participationClosureRepository
                 .findAggregatesByActivityId(activity.getId());
-        long confirmed = registrationRepository.countByActivityIdAndStatus(
-                activity.getId(), RegistrationStatus.CONFIRMED);
+        long confirmed = occupiedSpots(activity.getId());
         return ActivityClosureResponse.from(closure, activity, agg, confirmed);
+    }
+
+    /**
+     * Voluntarios con plaza: {@code CONFIRMED}, {@code PENDING_CLOSURE} y {@code CLOSED}.
+     *
+     * <p>Al terminar la actividad las confirmadas ya no están en {@code CONFIRMED},
+     * así que contar solo ese estado daba cero en toda actividad cerrable. Es la
+     * misma definición de plaza ocupada que usan el catálogo y el rol entidad.
+     */
+    private long occupiedSpots(Long activityId) {
+        return registrationRepository.countOccupiedSpotsByActivityIds(List.of(activityId)).stream()
+                .findFirst()
+                .map(ActivitySpotCount::occupied)
+                .orElse(0L);
     }
 }
