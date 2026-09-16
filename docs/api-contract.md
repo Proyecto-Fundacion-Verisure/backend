@@ -553,6 +553,7 @@ ActivityClosureResponse  { activityId, collaborationRating, closingNotes, lesson
 - ⚠️ **La bandeja lista actividades, no cierres individuales.** La administradora no revisa doce formularios: mira los totales —previsto frente a reportado— y cierra **una vez**, lo que arrastra todas las participaciones a `CLOSED`.
 - **`finalize` no se deshace.**
 - `expectedHours` es `activity.hours × confirmedVolunteers`; `reportedHours`, `closedParticipations` y `evidenceCount` salen de una proyección agregada sobre los cierres de participación.
+- `confirmedVolunteers` cuenta `CONFIRMED`, `PENDING_CLOSURE` y `CLOSED`: la misma definición que `occupiedSpots` en el catálogo y en `/api/org/**`. Al terminar la actividad las confirmadas pasan a `PENDING_CLOSURE`, así que contar solo `CONFIRMED` daría cero en toda actividad cerrable.
 
 ### 6.9 · Rol de entidad · `/api/org/**`
 
