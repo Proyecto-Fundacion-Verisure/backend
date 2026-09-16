@@ -320,6 +320,15 @@ Tras cancelar, frontend vuelve a consultar actividad e inscripciones.
 
 **Los filtros de la lista.** `line`, `mode`, `from` y `to` son opcionales y se combinan con Y: los que no llegan no filtran nada. `from` y `to` acotan la **fecha de inicio**, extremos incluidos. La lista muestra los mismos cuatro estados visibles que la ficha.
 
+**Los valores de `line` y `mode`.** No son enumerados en la base —las dos columnas son texto—, pero el conjunto es cerrado y frontend filtra por él, así que viajan siempre así:
+
+| Campo | Valores |
+|---|---|
+| `line` | `desoledad` · `educar` · `acoso` · `medioambiente` |
+| `mode` | `PRESENCIAL` · `ONLINE` · `MIXTO` |
+
+Las líneas en **minúsculas y sin separador**, los modos en **mayúsculas**. Es lo que siembran `ActivitySeeder` y `ProposalSeeder`, y lo que hay en la columna `line` de las doce actividades. Escribirlo aquí es lo que faltaba: el frontend fijó `medio_ambiente` con guion bajo, y el filtro «Medio ambiente» no devolvía nada contra el backend real sin que ninguna de las dos partes estuviera equivocada, porque el contrato no lo decía. Las **etiquetas visibles** («Medio ambiente») no son el valor y no se tocan.
+
 ```
 ActivityCardResponse {
   id, title, partnerName, line, mode, location,
@@ -514,6 +523,12 @@ CreateClosureRequest { registrationId, actualHours, rating (1..5), comment?, evi
 | PATCH | `/api/admin/activities/{id}/closure/finalize` | ADMIN | — | 200 `ActivityClosureResponse` | 409 `CLOSURE_ALREADY_CLOSED` |
 
 ```
+ActivityClosureRow { activityId, title, partnerName, line, startDate, endDate, hours }
+```
+
+`partnerName` es nulable: una actividad que publica la Fundación por su cuenta no tiene entidad detrás y no puede quedarse fuera de la cola por eso.
+
+```
 SaveActivityClosureRequest { collaborationRating (1..5)?, closingNotes?, lessonsLearned? }
 ActivityClosureResponse  { activityId, collaborationRating, closingNotes, lessonsLearned,
                            status, closedAt,
@@ -538,6 +553,28 @@ ActivityClosureResponse  { activityId, collaborationRating, closingNotes, lesson
 | GET | `/api/org/dashboard` | PARTNER | `year` | 200 `OrgDashboardResponse` | 403 |
 
 > **Barrera de datos personales · `B1-19`.** Todas estas rutas resuelven el `partnerId` **desde la sesión, nunca desde un parámetro**. Y **ninguno** de sus DTO expone nombres, correos, departamentos ni horas individuales de empleados. Ni uno.
+
+```
+OrgActivityRow {
+  id, title, line, mode, location,
+  startDate, endDate, registrationDeadline, hours,
+  spots, occupiedSpots, status, reviewNote
+}
+
+OrgProposalRow {
+  id, description, suggestedLine, estimatedVolunteers,
+  scope, status, createdAt, activityId
+}
+
+CreateOrgProposalRequest { description, suggestedLine, estimatedVolunteers, scope }
+```
+
+- **`occupiedSpots` es el único dato de participación que sale del bloque**, y es un recuento. Misma definición que en el catálogo —`CONFIRMED`, `PENDING_CLOSURE` y `CLOSED`—, porque dos definiciones distintas de «plaza ocupada» acabarían enseñando números distintos para la misma actividad. **No hay `partnerName`**: la entidad ya sabe quién es.
+- **`reviewNote` va en la fila** porque no existe un estado `RETURNED`: una actividad devuelta es una que ha vuelto a `DRAFT` conservando el comentario, y el texto es lo único que la distingue de un borrador que nunca se envió.
+- **`CreateOrgProposalRequest` no lleva CIF ni contacto ni consentimiento**: la entidad sale del token y ya consintió al registrarse. La casilla solo tiene sentido en `POST /api/proposals`, donde quien propone no tiene cuenta. Las dos vías acaban en la misma tabla y en la misma bandeja.
+- **La entidad no fija el estado.** `POST` crea siempre en `DRAFT` y de ahí solo la mueve `submit`; un `status` que llegue en el cuerpo se ignora porque `CreateActivityRequest` no tiene ese campo.
+- ⚠️ **`PUT /api/org/activities/{id}` recibe hoy `CreateActivityRequest`**, no `UpdateActivityRequest`: ese DTO todavía no existe y lo crea `B2-05`. Cuando aterrice, el endpoint cambia.
+
 
 ### 6.10 · Cuentas de entidad · administración
 
