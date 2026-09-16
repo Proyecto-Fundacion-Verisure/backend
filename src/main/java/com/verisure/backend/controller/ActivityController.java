@@ -3,16 +3,21 @@ package com.verisure.backend.controller;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.verisure.backend.dto.activity.ActivityFormResponse;
 import com.verisure.backend.dto.activity.ActivityResponse;
 import com.verisure.backend.dto.activity.CreateActivityRequest;
+import com.verisure.backend.dto.activity.UpdateActivityRequest;
 import com.verisure.backend.service.ActivityService;
+import com.verisure.backend.service.NotificationService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +34,7 @@ import lombok.RequiredArgsConstructor;
 public class ActivityController {
 
     private final ActivityService activityService;
+    private final NotificationService notificationService;
 
     /** Crea la actividad en DRAFT. Devuelve 201. */
     @PostMapping("/activities")
@@ -37,6 +43,34 @@ public class ActivityController {
             Authentication authentication) {
         ActivityResponse body = activityService.create(request, authentication.getName());
         return ResponseEntity.status(HttpStatus.CREATED).body(body);
+    }
+
+    /** Carga el formulario de edición, en cualquier estado · B2-05. */
+    @GetMapping("/activities/{id}")
+    public ActivityFormResponse getForm(@PathVariable Long id) {
+        return activityService.getForm(id);
+    }
+
+    /** Actualiza la actividad, con las mismas validaciones que la creación · B2-05. */
+    @PutMapping("/activities/{id}")
+    public ActivityResponse update(@PathVariable Long id,
+                                   @Valid @RequestBody UpdateActivityRequest request) {
+        return activityService.update(id, request);
+    }
+
+    /**
+     * Cancela la actividad y sus inscripciones · B2-05.
+     *
+     * <p>Orquesta el aviso, como el resto de controladores: el servicio hace su
+     * trabajo dentro de su transacción y devuelve; si no ha lanzado, el
+     * controlador manda el correo. Así una cancelación que se deshace no avisa
+     * a nadie. Ver la regla en {@link NotificationService}.
+     */
+    @PatchMapping("/activities/{id}/cancel")
+    public ResponseEntity<Void> cancel(@PathVariable Long id) {
+        activityService.cancel(id);
+        notificationService.notifyActivityCancelled(id);
+        return ResponseEntity.noContent().build();
     }
 
     /** Publica la actividad: DRAFT → PUBLISHED. */
