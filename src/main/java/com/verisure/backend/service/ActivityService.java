@@ -7,6 +7,7 @@ import com.verisure.backend.dto.activity.ActivityFormResponse;
 import com.verisure.backend.dto.activity.ActivityResponse;
 import com.verisure.backend.dto.activity.CreateActivityRequest;
 import com.verisure.backend.dto.activity.UpdateActivityRequest;
+import com.verisure.backend.entity.enums.ActivityStatus;
 import com.verisure.backend.repository.projection.ActivitySummary;
 
 public interface ActivityService {
@@ -39,6 +40,14 @@ public interface ActivityService {
     void cancel(Long activityId);
 
     ActivityResponse publish(Long activityId);
+
+    /**
+     * El listado de actividades de administración, con el recuento de favoritos.
+     *
+     * <p>Sin filtro devuelve todos los estados, incluidos {@code DRAFT} y
+     * {@code CANCELLED}: es el listado de la Fundación, no el catálogo.
+     */
+    Page<ActivitySummary> list(ActivityStatus status, Pageable pageable);
 
     /**
      * La cola de actividades propuestas por una entidad y pendientes de revisión

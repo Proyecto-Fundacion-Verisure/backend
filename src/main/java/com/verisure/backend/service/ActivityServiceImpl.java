@@ -87,6 +87,12 @@ public class ActivityServiceImpl implements ActivityService {
 
     @Override
     @Transactional(readOnly = true)
+    public Page<ActivitySummary> list(ActivityStatus status, Pageable pageable) {
+        return activityRepository.findByStatusWithFavoriteCount(status, pageable);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Page<ActivitySummary> listPendingApproval(Pageable pageable) {
         return activityRepository.findPendingApproval(pageable);
     }

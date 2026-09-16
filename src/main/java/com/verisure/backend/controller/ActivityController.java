@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.verisure.backend.dto.activity.ActivityFormResponse;
@@ -21,6 +22,7 @@ import com.verisure.backend.dto.activity.ActivityResponse;
 import com.verisure.backend.dto.activity.CreateActivityRequest;
 import com.verisure.backend.dto.activity.ReturnActivityRequest;
 import com.verisure.backend.dto.activity.UpdateActivityRequest;
+import com.verisure.backend.entity.enums.ActivityStatus;
 import com.verisure.backend.repository.projection.ActivitySummary;
 import com.verisure.backend.service.ActivityService;
 import com.verisure.backend.service.NotificationService;
@@ -41,6 +43,21 @@ public class ActivityController {
 
     private final ActivityService activityService;
     private final NotificationService notificationService;
+
+    /**
+     * El listado de actividades de administración, con filtro de estado opcional.
+     *
+     * <p>Ordenado por fecha de inicio descendente: lo que se viene a tocar aquí
+     * es lo próximo, no lo del año pasado. La cola de revisión va al revés, por
+     * antigüedad, porque eso sí es una cola.
+     */
+    @GetMapping("/activities")
+    public Page<ActivitySummary> list(
+            @RequestParam(required = false) ActivityStatus status,
+            @PageableDefault(sort = "startDate", direction = Sort.Direction.DESC)
+            Pageable pageable) {
+        return activityService.list(status, pageable);
+    }
 
     /** Crea la actividad en DRAFT. Devuelve 201. */
     @PostMapping("/activities")
