@@ -8,11 +8,14 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.verisure.backend.dto.auth.RegisterPartnerRequest;
+import com.verisure.backend.dto.auth.ResendVerificationRequest;
 import com.verisure.backend.dto.user.UserResponse;
 import com.verisure.backend.service.AuthService;
+import com.verisure.backend.service.NotificationService;
 
 import jakarta.validation.Valid;
 
@@ -35,6 +38,7 @@ import lombok.extern.slf4j.Slf4j;
 public class AuthController {
 
     private final AuthService authService;
+    private final NotificationService notificationService;
 
     /**
      * Cierre de sesión. Requiere token (lo garantiza la cadena: cae en
@@ -66,12 +70,43 @@ public class AuthController {
      * {@code POST /api/auth/register}. Alta conjunta de entidad y persona.
      *
      * <p>Ruta pública, no emite token: la cuenta nace sin verificar y el login ya
-     * la bloquea hasta que confirme el correo.
+     * la bloquea hasta que confirme el correo. Se dispara el aviso de verificación
+     * desde fuera de la transacción.
      */
     @PostMapping("/register")
     public ResponseEntity<UserResponse> register(
             @Valid @RequestBody RegisterPartnerRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(authService.registerPartner(request));
+        UserResponse created = authService.registerPartner(request);
+        notificationService.notifyVerificationRequested(created.id());
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
+
+    /**
+     * {@code GET /api/auth/verify}. Valida el correo desde el enlace del aviso.
+     *
+     * <p>Ruta pública, sin sesión. Sigue viva si la token sirvió ya (falla con
+     * {@code VERIFICATION_EXPIRED}, llámese como se llame el enlace). Responde
+     * 200 y deja la cuenta pendiente de aprobación.
+     */
+    @GetMapping("/verify")
+    public ResponseEntity<Void> verify(@RequestParam String token) {
+        authService.verify(token);
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * {@code POST /api/auth/resend-verification}. Manda otro enlace.
+     *
+     * <p>Ruta pública. No enumera correos: si la cuenta no existe o ya no está
+     * pendiente de verificar responde 204 sin emitir aviso.
+     */
+    @PostMapping("/resend-verification")
+    public ResponseEntity<Void> resendVerification(
+            @Valid @RequestBody ResendVerificationRequest request) {
+        Long userId = authService.resendVerification(request.email());
+        if (userId != null) {
+            notificationService.notifyVerificationRequested(userId);
+        }
+        return ResponseEntity.noContent().build();
     }
 }

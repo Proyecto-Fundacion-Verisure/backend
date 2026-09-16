@@ -40,6 +40,32 @@ public interface AuthService {
     UserResponse registerPartner(RegisterPartnerRequest request);
 
     /**
+     * Verifica el correo con el token que llegó en el enlace.
+     *
+     * <p>Es definitivo: un token dado de alta se quema, aunque vuelva por una
+     * segunda petición. No puede reutilizarse (falla con
+     * {@code VERIFICATION_EXPIRED}), tampoco si caducó (24 horas) o si el correo
+     * ya estaba verificado.
+     *
+     * @throws com.verisure.backend.exception.DomainException con
+     * {@code VERIFICATION_EXPIRED} cuando el enlace no es válido, ya se ha usado
+     * o ha caducado.
+     */
+    void verify(String token);
+
+    /**
+     * Reenvía el enlace de verificación.
+     *
+     * <p>No distingue destinatarios: si el correo no existe o la cuenta ya no
+     * está pendiente de verificar, no hace nada en vez de responder un error que
+     * enumerara correos dados de alta.
+     *
+     * @return el id del usuario al que se reenvió, o {@code null} si no procede;
+     * con él decide el controlador si manda el aviso.
+     */
+    Long resendVerification(String email);
+
+    /**
      * Cierra una sesión en el servidor. <b>No revoca el JWT</b>: un token es
      * sin estado y no hay fila que borrar; la caducidad de dos horas es la
      * política de revocación. El cierre real ocurre en el cliente, que descarta
