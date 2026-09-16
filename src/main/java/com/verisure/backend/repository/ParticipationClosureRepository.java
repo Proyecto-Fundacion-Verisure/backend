@@ -16,6 +16,12 @@ public interface ParticipationClosureRepository extends JpaRepository<Participat
     Optional<ParticipationClosure> findByRegistrationId(Long registrationId);
 
     /**
+     * Los cierres de participación de una actividad, para repartir la referencia
+     * del certificado al cerrar la actividad · B1-21.
+     */
+    List<ParticipationClosure> findByRegistration_ActivityId(Long activityId);
+
+    /**
      * Agregado de participaciones cerradas para el dashboard de la Fundación.
      *
      * <p>Lleva {@code @Query} porque el nombre no es derivable y porque
