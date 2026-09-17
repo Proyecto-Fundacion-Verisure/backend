@@ -1,16 +1,10 @@
 # Contrato de API · Voluntariado Fundación Verisure
 
-**Borrador para la sesión de C-03 · 7 de septiembre de 2026**
+**Estado:** refleja la rama `dev` a 18 de septiembre de 2026.
 
-> C-03 ([#179](https://github.com/Proyecto-Fundacion-Verisure/backend/pull/179)) y C-04 ([#180](https://github.com/Proyecto-Fundacion-Verisure/backend/pull/180)) ya están mergeados en `dev`.
-
-> Este documento es la **única** fuente del contrato entre backend y frontend. Sustituye a la tabla de endpoints del issue [#117](https://github.com/Proyecto-Fundacion-Verisure/backend/issues/117) y a las citas por pantalla del documento de frontend, que estuvieron escritas dos veces durante dos semanas sin que nada comprobara que coincidían.
+> Este documento es la **única** fuente del contrato entre backend y frontend. Rutas, DTO, códigos de estado y códigos de error se toman de aquí, no de las issues.
 >
-> **Si una pantalla necesita un campo que no está aquí, no se inventa:** se pide el cambio, se actualiza este documento y luego se implementa. Cualquier cambio posterior se hace **por PR**, nunca en un mensaje de chat.
-
-**Estado:** borrador pendiente de repasar en voz alta con las tres personas de frontend. Las secciones marcadas con ⚠️ son las que hay que acordar en esa sesión, y siguen todas abiertas.
-
-Lo que ha cambiado desde el 2 de septiembre no es el contrato, sino su coste: **el código de C-03 y C-04 ya está escrito sobre estas decisiones**. Los ocho enumerados, la forma de `ApiError`, los dieciocho códigos, las firmas que cruzan dominios, los trece avisos y la cadena de seguridad están implementados tal como se describen aquí. Cambiar cualquiera de los puntos ⚠️ en la sesión ya no es editar un documento: es un cambio de código.
+> **Si una pantalla necesita un campo que no está aquí, no se inventa:** se pide el cambio, se actualiza este documento y luego se implementa. Cualquier cambio se hace **por PR**, nunca en un mensaje de chat.
 
 ---
 
@@ -35,7 +29,7 @@ Backend no las inventa: las usa para construir los enlaces de los correos.
 |---|---|
 | `/my-volunteering` | «Mis voluntariados» |
 | `/activities/{id}` | Detalle de actividad |
-| ⚠️ `/closures/{id}` | Detalle del cierre. **Era `/reports/{id}`**; el cambio hay que acordarlo con FE2 en la sesión |
+| `/closures/{id}` | Detalle del cierre |
 
 ---
 
@@ -140,9 +134,9 @@ No lleva el código HTTP: ya viaja en la respuesta.
 | `EMAIL_ALREADY_REGISTERED` | 409 | El correo ya está registrado, en cualquier cuenta |
 | `PROPOSAL_ALREADY_DECIDED` | 409 | La propuesta ya se aceptó o rechazó |
 | `VERIFICATION_EXPIRED` | 410 | El enlace del correo caducó |
-| `RATE_LIMIT_EXCEEDED` | 429 | Límite por IP en las rutas públicas · `C-06` |
+| `RATE_LIMIT_EXCEEDED` | 429 | Reservado para un límite por IP en las rutas públicas. **Hoy no se emite**: no hay rate limiting implementado |
 
-Los genéricos de HTTP —`UNAUTHORIZED` 401, `FORBIDDEN` 403, `NOT_FOUND` 404, `MALFORMED_REQUEST` 400, `PAYLOAD_TOO_LARGE` 413, `UNSUPPORTED_MEDIA_TYPE` 415, `INTERNAL_ERROR` 500— **no son códigos de dominio**, pero devuelven el mismo `ApiError`.
+Los genéricos de HTTP —`UNAUTHORIZED` 401, `FORBIDDEN` 403, `NOT_FOUND` 404, `MALFORMED_REQUEST` 400, `METHOD_NOT_ALLOWED` 405, `PAYLOAD_TOO_LARGE` 413, `UNSUPPORTED_MEDIA_TYPE` 415, `INTERNAL_ERROR` 500— **no son códigos de dominio**, pero devuelven el mismo `ApiError`.
 
 > 🚫 **`ACTIVITY_FULL` no existe y no debe aparecer nunca.** Aceptar una inscripción no falla por aforo: con hueco confirma, sin hueco conserva la cola con `accepted = true`.
 >
@@ -229,7 +223,7 @@ notificationService.notifyActivityClosed(id);
 
 Como red de seguridad, `NotificationServiceImpl` difiere el envío a `afterCommit()` si detecta una transacción abierta, y el envío real lo hace `MailDispatcher`, un bean aparte con `@Async`. **Es una protección, no un permiso para saltarse la regla.**
 
-> ⚠️ **Dos trampas de *proxy*, que no dan ningún error.** `@Transactional` y `@Async` viven en un *proxy* alrededor del bean: una llamada de un método a otro **de la misma clase** no pasa por él y la anotación **se ignora en silencio**. Por eso `MailDispatcher` es un bean separado, y por eso no vale partir un servicio en un método público sin `@Transactional` que llame a uno interno que sí la lleve.
+> **Dos trampas de *proxy*, que no dan ningún error.** `@Transactional` y `@Async` viven en un *proxy* alrededor del bean: una llamada de un método a otro **de la misma clase** no pasa por él y la anotación **se ignora en silencio**. Por eso `MailDispatcher` es un bean separado, y por eso no vale partir un servicio en un método público sin `@Transactional` que llame a uno interno que sí la lleve.
 
 **Un caso que la regla no cubre sola:** cuando el destinatario nace dentro de la transacción y su identificador no está en la ruta. Es lo que pasa con `notifySpotReleased`, que va a quien ascendió de la cola. El servicio tiene que devolver ese dato:
 
@@ -251,7 +245,7 @@ public record CancelResult(RegistrationResponse body, Long promotedRegistrationI
 | POST | `/api/auth/resend-verification` |
 | POST | `/api/proposals` — formulario de la landing, sin cuenta |
 
-**Todo lo demás pide token**, incluidos el catálogo de actividades y `/uploads/**`.
+**Todo lo demás pide token**, incluido el catálogo de actividades. La única excepción es `GET /uploads/**`, que se explica en la tabla siguiente.
 
 ### El reparto por rol
 
@@ -260,7 +254,7 @@ public record CancelResult(RegistrationResponse body, Long promotedRegistrationI
 | `/api/admin/**` · `/api/dashboard/**` | `ADMIN` |
 | `/api/org/**` | `PARTNER` |
 | `GET /api/activities`, `/api/activities/{id}` | `EMPLOYEE` · `ADMIN` |
-| `/uploads/**` | cualquiera con token |
+| `GET /uploads/**` | pública · el navegador abre la evidencia con un enlace directo, sin cabecera; la protección es el nombre UUID que genera el servidor |
 | El resto | cualquiera con token · quién puede lo decide el servicio |
 
 **Tres rutas sirven a dos roles**, así que la cadena solo exige token y la propiedad la comprueba el servicio devolviendo `NOT_OWNER`: `PATCH /api/registrations/{id}/cancel`, `GET /api/closures/{id}` y `GET /api/closures/{id}/certificate`.
@@ -286,7 +280,7 @@ El mensaje idéntico para credenciales incorrectas y correo inexistente es delib
 
 ## 6 · Endpoints
 
-53 endpoints en once bloques.
+53 endpoints en once bloques. **51 están implementados**; los dos que faltan —`POST /api/proposals` y `GET /api/org/dashboard`— están marcados en su bloque y el frontend los sirve desde un mock.
 
 ### 6.1 · Autenticación
 
@@ -295,9 +289,9 @@ El mensaje idéntico para credenciales incorrectas y correo inexistente es delib
 | POST | `/api/auth/login` | público | `LoginRequest { email, password }` | 200 `AuthResponse` | 401 genérico · 403 `ACCOUNT_NOT_VERIFIED` / `ACCOUNT_PENDING_APPROVAL` / `ACCOUNT_REJECTED` |
 | POST | `/api/auth/logout` | autenticado | — | **204** · solo traza | — |
 | GET | `/api/auth/me` | autenticado | — | 200 `UserResponse` | 401 |
-| POST | `/api/auth/register` | público | `RegisterOrgRequest` | **201** | 400 `VALIDATION_ERROR` · 409 `CIF_ALREADY_REGISTERED` / `EMAIL_ALREADY_REGISTERED` · 429 |
-| GET | `/api/auth/verify?token=` | público | token | 200 | 410 `VERIFICATION_EXPIRED` · 429 |
-| POST | `/api/auth/resend-verification` | público | `{ email }` | **204** | 429 `RATE_LIMIT_EXCEEDED` |
+| POST | `/api/auth/register` | público | `RegisterPartnerRequest` | **201** | 400 `VALIDATION_ERROR` · 409 `CIF_ALREADY_REGISTERED` / `EMAIL_ALREADY_REGISTERED` |
+| GET | `/api/auth/verify?token=` | público | token | 200 | 410 `VERIFICATION_EXPIRED` |
+| POST | `/api/auth/resend-verification` | público | `{ email }` | **204** | — · no enumera correos: responde 204 exista o no la cuenta |
 
 ```
 AuthResponse { accessToken, tokenType: "Bearer", expiresIn: 7200, user: UserResponse }
@@ -314,13 +308,10 @@ UserResponse { id, name, email, role, department?, organization? }
 |---|---|---|---|---|---|
 | GET | `/api/activities` | EMPLOYEE · ADMIN | `line`, `mode`, `from`, `to`, `page`, `size` | 200 `Page<ActivityCardResponse>` | 403 |
 | GET | `/api/activities/{id}` | EMPLOYEE · ADMIN | — | 200 `ActivityDetailResponse` | 403 · 404 |
-| PATCH | `/api/admin/activities/{id}/cancel` | ADMIN | — | **204** | 403 · 404 |
 
 `GET /api/activities/{id}` es visible solo en `PUBLISHED`, `FULL`, `IN_PROGRESS` y `FINISHED`. En cualquier otro estado devuelve 404, no 403: quien no debe verla no debe ni saber que existe.
 
-⚠️ **El catálogo ya no es público.** Pide token de `EMPLOYEE` o `ADMIN`. Una entidad colaboradora recibe **403**: lo suyo lo ve en `/api/org/activities`. La landing pública no lo necesita, porque sus cifras y líneas de acción son contenido estático.
-
-Tras cancelar, frontend vuelve a consultar actividad e inscripciones.
+**El catálogo no es público.** Pide token de `EMPLOYEE` o `ADMIN`. Una entidad colaboradora recibe **403**: lo suyo lo ve en `/api/org/activities`. La landing pública no lo necesita, porque sus cifras y líneas de acción son contenido estático.
 
 **Los filtros de la lista.** `line`, `mode`, `from` y `to` son opcionales y se combinan con Y: los que no llegan no filtran nada. `from` y `to` acotan la **fecha de inicio**, extremos incluidos. La lista muestra los mismos cuatro estados visibles que la ficha.
 
@@ -362,6 +353,7 @@ ActivityDetailResponse {
 | GET | `/api/admin/activities/{id}` | ADMIN | — | 200 `ActivityFormResponse` | 403 · 404 |
 | PUT | `/api/admin/activities/{id}` | ADMIN | `UpdateActivityRequest` | 200 `ActivityResponse` | 409 `ACTIVITY_FINISHED` |
 | PATCH | `/api/admin/activities/{id}/publish` | ADMIN | — | 200 `ActivityResponse` | 409 `ACTIVITY_NOT_EDITABLE` |
+| PATCH | `/api/admin/activities/{id}/cancel` | ADMIN | — | **204** | 403 · 404 |
 | GET | `/api/admin/activities/pending` | ADMIN | `page` | 200 `Page<ActivitySummary>` | 403 |
 | PATCH | `/api/admin/activities/{id}/approve` | ADMIN | — | 200 `ActivityResponse` | 409 `ACTIVITY_NOT_PENDING_APPROVAL` |
 | PATCH | `/api/admin/activities/{id}/return` | ADMIN | `ReturnActivityRequest { note }` | 200 `ActivityResponse` | 400 · 409 `ACTIVITY_NOT_PENDING_APPROVAL` |
@@ -381,6 +373,7 @@ ActivitySummary { id, title, partnerName, status, startDate, endDate, spots, fav
 
 - La portada no la sube el backend: es una imagen por defecto por línea (`desoledad` · `educar` · `acoso` · `medioambiente`) que resuelve el frontend. Por eso ni `Activity` ni los DTO de actividad tienen `imageUrl`.
 - `approve` y `return` son para actividades **propuestas por una entidad**. Los cierres **no** se devuelven.
+- `cancel` pasa a `CANCELLED` las inscripciones vivas y avisa por correo a cada una. Tras cancelar, frontend vuelve a consultar actividad e inscripciones.
 
 ```
 RefreshStatusResponse { started, finished }
@@ -400,13 +393,15 @@ quiere, encaja como botón de mantenimiento en el panel de administración.
 
 | Método | Ruta | Rol | Recibe | Devuelve | Errores |
 |---|---|---|---|---|---|
-| POST | `/api/proposals` | **público** | `CreateProposalRequest` | **201** | 400 · 429 `RATE_LIMIT_EXCEEDED` |
+| POST | `/api/proposals` | **público** | `CreateProposalRequest` | **201** | 400 · ❌ **no implementado** |
 | GET | `/api/admin/proposals` | ADMIN | `status`, `page` | 200 `Page<ProposalRow>` | 403 |
 | GET | `/api/admin/proposals/{id}` | ADMIN | — | 200 `ProposalDetailResponse` | 403 · 404 |
 | POST | `/api/admin/proposals/{id}/accept` | ADMIN | — | **201** `ActivityResponse` | 409 `PROPOSAL_ALREADY_DECIDED` |
 | PATCH | `/api/admin/proposals/{id}/reject` | ADMIN | — | **204** | 409 `PROPOSAL_ALREADY_DECIDED` |
 
 Aceptar devuelve **201** y no 200 porque crea una actividad nueva.
+
+> ❌ **`POST /api/proposals` no tiene controlador.** La cadena de seguridad lo abre sin token, pero la ruta responde 404. El formulario público de la landing sigue en mock en el frontend (`proposalsApi.js`). Cuando se implemente, `Proposal` ya admite `partner` nulo con los datos de contacto en la propia fila, así que el modelo no cambia.
 
 ```
 ProposalRow {
@@ -451,7 +446,7 @@ RegistrationRow {
 RegistrationCounts { confirmed, waitlisted, unreviewed }
 ```
 
-⚠️ **Los contadores van en su propia ruta y no dentro del tablero.** La respuesta
+**Los contadores van en su propia ruta y no dentro del tablero.** La respuesta
 de `/api/admin/registrations` es el `Page<T>` de Spring Data, y ahí no caben tres
 cifras que además son de toda la actividad y no de la página.
 
@@ -472,16 +467,13 @@ MyRegistrationItem {
 }
 ```
 
-⚠️ **`accepted` es una enmienda de BE3 a este bloque**, añadida al integrar «Mis
-voluntariados». Solo dice algo cuando el estado es `WAITLISTED`, y ahí separa dos
+**`accepted` solo dice algo cuando el estado es `WAITLISTED`**, y ahí separa dos
 esperas que sin él son indistinguibles: quien sigue pendiente de que administración
 la revise (`accepted = false`) y quien ya pasó por administración y está en cola
 porque no había hueco (`accepted = true`). Es la misma semántica que en
-`RegistrationRow`, y es justo lo que quiere saber quien aguarda plaza. Sin este
-campo la pantalla enseñaba «Pendiente de revisión» a todo el mundo, incluidas las
-ya aceptadas.
+`RegistrationRow`, y es justo lo que quiere saber quien aguarda plaza.
 
-⚠️ **`closureId` y `activityClosed` sustituyen a `reportId` y `reportStatus`.** Como el cierre de participación no tiene estados, el booleano es lo único que permite decidir qué botón pintar:
+**`closureId` y `activityClosed`.** Como el cierre de participación no tiene estados, el booleano es lo único que permite decidir qué botón pintar:
 
 | `closureId` | `activityClosed` | Botón en «Mis voluntariados» |
 |---|---|---|
@@ -524,8 +516,9 @@ CreateClosureRequest { registrationId, actualHours, rating (1..5), comment?, evi
 
 - `registrationId` va **en el cuerpo**, no en la ruta.
 - La evidencia acepta **PDF, JPG y PNG, máximo 10 MB**. Si hay archivo, `evidenceConsent` debe ser `true`.
+- `evidenceUrl` es una **URL absoluta al backend** (`http://<host>:8080/uploads/evidencias/<uuid>.<ext>`), lista para un `href` o un `src`. Antes era relativa y el navegador la resolvía contra el frontend.
 - **Solo puede existir un cierre por inscripción.** El identificador de ruta es siempre `closureId`.
-- ⚠️ **No hay estados ni horas validadas.** Las horas que declara el empleado son las definitivas: nadie las corrige. Si a administración no le cuadran, lo escribe en `closingNotes` del cierre de actividad. Por eso no existe ningún endpoint de validar ni de devolver un cierre.
+- **No hay estados ni horas validadas.** Las horas que declara el empleado son las definitivas: nadie las corrige. Si a administración no le cuadran, lo escribe en `closingNotes` del cierre de actividad. Por eso no existe ningún endpoint de validar ni de devolver un cierre.
 
 ### 6.8 · Cierre de actividad · lo rellena la Fundación
 
@@ -550,7 +543,7 @@ ActivityClosureResponse  { activityId, collaborationRating, closingNotes, lesson
                            confirmedVolunteers, closedParticipations, evidenceCount }
 ```
 
-- ⚠️ **La bandeja lista actividades, no cierres individuales.** La administradora no revisa doce formularios: mira los totales —previsto frente a reportado— y cierra **una vez**, lo que arrastra todas las participaciones a `CLOSED`.
+- **La bandeja lista actividades, no cierres individuales.** La administradora no revisa doce formularios: mira los totales —previsto frente a reportado— y cierra **una vez**, lo que arrastra todas las participaciones a `CLOSED`.
 - **`finalize` no se deshace.**
 - `expectedHours` es `activity.hours × confirmedVolunteers`; `reportedHours`, `closedParticipations` y `evidenceCount` salen de una proyección agregada sobre los cierres de participación.
 - `confirmedVolunteers` cuenta `CONFIRMED`, `PENDING_CLOSURE` y `CLOSED`: la misma definición que `occupiedSpots` en el catálogo y en `/api/org/**`. Al terminar la actividad las confirmadas pasan a `PENDING_CLOSURE`, así que contar solo `CONFIRMED` daría cero en toda actividad cerrable.
@@ -561,11 +554,11 @@ ActivityClosureResponse  { activityId, collaborationRating, closingNotes, lesson
 |---|---|---|---|---|---|
 | GET | `/api/org/activities` | PARTNER | `status`, `page` | 200 `Page<OrgActivityRow>` | 403 |
 | POST | `/api/org/activities` | PARTNER | `CreateActivityRequest` | **201** `OrgActivityRow` | 400 |
-| PUT | `/api/org/activities/{id}` | PARTNER | `UpdateActivityRequest` | 200 `OrgActivityRow` | 409 `ACTIVITY_NOT_EDITABLE` · 403 `NOT_OWNER` |
+| PUT | `/api/org/activities/{id}` | PARTNER | `CreateActivityRequest` | 200 `OrgActivityRow` | 409 `ACTIVITY_NOT_EDITABLE` · 403 `NOT_OWNER` |
 | PATCH | `/api/org/activities/{id}/submit` | PARTNER | — | 200 `OrgActivityRow` | 409 `ACTIVITY_NOT_EDITABLE` |
 | GET | `/api/org/proposals` | PARTNER | `page` | 200 `Page<OrgProposalRow>` | 403 |
 | POST | `/api/org/proposals` | PARTNER | `CreateOrgProposalRequest` | **201** `OrgProposalRow` | 400 |
-| GET | `/api/org/dashboard` | PARTNER | `year` | 200 `OrgDashboardResponse` | 403 |
+| GET | `/api/org/dashboard` | PARTNER | `year` | 200 `OrgDashboardResponse` | ❌ **no implementado** |
 
 > **Barrera de datos personales · `B1-19`.** Todas estas rutas resuelven el `partnerId` **desde la sesión, nunca desde un parámetro**. Y **ninguno** de sus DTO expone nombres, correos, departamentos ni horas individuales de empleados. Ni uno.
 
@@ -588,7 +581,9 @@ CreateOrgProposalRequest { description, suggestedLine, estimatedVolunteers, scop
 - **`reviewNote` va en la fila** porque no existe un estado `RETURNED`: una actividad devuelta es una que ha vuelto a `DRAFT` conservando el comentario, y el texto es lo único que la distingue de un borrador que nunca se envió.
 - **`CreateOrgProposalRequest` no lleva CIF ni contacto ni consentimiento**: la entidad sale del token y ya consintió al registrarse. La casilla solo tiene sentido en `POST /api/proposals`, donde quien propone no tiene cuenta. Las dos vías acaban en la misma tabla y en la misma bandeja.
 - **La entidad no fija el estado.** `POST` crea siempre en `DRAFT` y de ahí solo la mueve `submit`; un `status` que llegue en el cuerpo se ignora porque `CreateActivityRequest` no tiene ese campo.
-- ⚠️ **`PUT /api/org/activities/{id}` recibe hoy `CreateActivityRequest`**, no `UpdateActivityRequest`: ese DTO todavía no existe y lo crea `B2-05`. Cuando aterrice, el endpoint cambia.
+- **`PUT /api/org/activities/{id}` recibe `CreateActivityRequest`**, el mismo cuerpo que el `POST`. `UpdateActivityRequest` existe para la ruta de administración y tiene exactamente los mismos campos, así que para el frontend son intercambiables.
+
+> ❌ **`GET /api/org/dashboard` no existe** ni tampoco `OrgDashboardResponse`. El panel de impacto de la entidad sigue en mock en el frontend (`orgApi.js`), con su aviso de datos ficticios.
 
 
 ### 6.10 · Cuentas de entidad · administración
@@ -633,45 +628,3 @@ DashboardResponse {
 - **Los agregados por `Organization` excluyen a los usuarios con rol de entidad**, que no tienen organización, o aparecería una categoría vacía en los gráficos.
 - `favoriteRanking` son las diez actividades con más «me gusta» dentro de los filtros.
 - Las descargas necesitan `Content-Disposition` expuesto en CORS. `participations.csv` lleva una fila por participación cerrada con identificador seudonimizado (`P-<id>`), sin nombre ni correo; `partners.csv`, una fila por entidad con sus actividades y horas. Los dos con BOM UTF-8 y `;`.
-
----
-
-## 7 · Lo que hay que acordar en la sesión
-
-Los seis siguen abiertos: la sesión no se ha hecho.
-
-| # | Punto | Por qué |
-|---|---|---|
-| 1 | ⚠️ Ruta de frontend `/reports/{id}` → **`/closures/{id}`** | La entrega FE2. Backend solo forma el enlace con `app.base-url` + la ruta |
-| 2 | ⚠️ `MyRegistrationItem`: `closureId` + `activityClosed` | Sustituyen a `reportId` + `reportStatus`. Repasar la tabla de tres filas de §6.5 |
-| 3 | ⚠️ Forma de `ApiError` con `Map<String, List<String>>` | Es una desviación del runbook, que usaba `Map<String, String>` |
-| 4 | ⚠️ No existe validar ni devolver un cierre de participación | Si alguna pantalla lo contemplaba, hay que rehacerla |
-| 5 | ⚠️ La bandeja de administración lista **actividades**, no cierres | Cambia la pantalla `admin-close` |
-| 6 | Campos concretos de los DTO marcados `TODO C-03` en el código | `CreateClosureRequest`, `ClosureDetailResponse`, `CertificateResponse`, `ActivityClosureRow` |
-
-### Dónde está ya cada punto en el código
-
-Sirve para ver, antes de la sesión, qué cuesta cambiar cada cosa.
-
-| # | Estado en `dev` |
-|---|---|
-| 1 | Implementado a medias: `app.base-url` ya existe en `application.properties`. La ruta la sigue entregando FE2, así que el cambio no toca backend |
-| 2 | Sin implementar: `MyRegistrationItem` todavía no existe como DTO. Es el punto más barato de cambiar |
-| 3 | **Implementado.** `exception/ApiError.java` usa `Map<String, List<String>>`, y `GlobalExceptionHandler` lo rellena así |
-| 4 | **Implementado por omisión.** `ParticipationClosureService` no tiene ningún método de validar ni de devolver, y no hay endpoint que lo exponga |
-| 5 | **Implementado.** `ActivityClosureController` lista actividades en `GET /api/admin/activities/pending-closure`, no cierres |
-| 6 | Pendiente y **el más urgente de los seis**: los `record` de `dto/closure/` y `dto/activityclosure/` están vacíos con `TODO C-03`. Frontend no puede mockear ninguna pantalla de cierre hasta que tengan campos |
-
-## 8 · Enmiendas pendientes de publicar
-
-Este contrato se aparta de las fuentes escritas en varios puntos. Las enmiendas están redactadas en `docs/c-03-plan.md` y **aún no se han publicado**.
-
-Conviene ser consciente de lo que eso significa hoy: **el código mergeado ya se comporta según estas enmiendas**, así que las issues y el runbook de la tabla describen un sistema que ya no es el que hay en `dev`. Quien las lea sin este documento al lado se va a equivocar.
-
-| Documento | Qué se enmienda |
-|---|---|
-| **#117** | 8 entidades y no 7 · sin `validatedHours` · sin `ReportStatus` · sin `closeRegistration` · `PENDING_CLOSURE` · rutas `/api/closures` · desaparece `REPORT_ALREADY_SUBMITTED` de los criterios de aceptación |
-| **#154** (B3-09) | Ya no hay `@TransactionalEventListener` · el correo «cierre validado o devuelto» no puede existir · ruta `/closures/{id}` |
-| **#171** (B3-13) | Ya no hay `@TransactionalEventListener` |
-| **#156** · **#157** | El rol se llama `PARTNER` en el código, no `ORG` |
-| **Runbook v5** | Nombre de este documento · 18 códigos y no 16 · 13 avisos y no 12 · métodos `notifyXxx` · `findClosedForDashboard` vive en `ParticipationClosureRepository` · identidad real del proyecto (paquete, Java 25, `java-jwt`) |
