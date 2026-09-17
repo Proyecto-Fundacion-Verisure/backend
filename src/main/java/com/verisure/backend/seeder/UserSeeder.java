@@ -1,5 +1,8 @@
 package com.verisure.backend.seeder;
 
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -48,6 +51,10 @@ public class UserSeeder implements CommandLineRunner {
      */
     public static final String PASSWORD_DEMO = "Verisure2026!";
 
+    /** Alta y verificación de las cuentas de entidad: fija, para que sea igual en todas las máquinas. */
+    private static final Instant PARTNER_SIGNUP =
+            LocalDate.of(2026, 1, 10).atStartOfDay().toInstant(ZoneOffset.UTC);
+
     private static final List<String> DEPARTMENTS = List.of(
             "Atención al Cliente", "Operaciones", "Tecnología",
             "Marketing", "Recursos Humanos", "Finanzas");
@@ -73,9 +80,9 @@ public class UserSeeder implements CommandLineRunner {
         List<User> users = new ArrayList<>();
 
         // 2 ADMIN · la Fundación
-        users.add(verisureUser("Carmen Ortega", "carmen.ortega@fundacionverisure.org",
+        users.add(verisureUser("Carmen Ortega", "carmen.ortega@verisure.ex",
                 Role.ADMIN, Organization.VERISURE_ES, "Fundación"));
-        users.add(verisureUser("Diego Salas", "diego.salas@fundacionverisure.org",
+        users.add(verisureUser("Diego Salas", "diego.salas@verisure.ex",
                 Role.ADMIN, Organization.VERISURE_ES, "Fundación"));
 
         // 8 EMPLOYEE · 5 en VERISURE_ES y 3 en VERISURE_GROUP, los seis departamentos rotando
@@ -92,7 +99,7 @@ public class UserSeeder implements CommandLineRunner {
         for (int i = 0; i < employees.length; i++) {
             users.add(verisureUser(
                     employees[i][0],
-                    employees[i][1] + "@verisure.es",
+                    employees[i][1] + "@verisure.ex",
                     Role.EMPLOYEE,
                     i < 5 ? Organization.VERISURE_ES : Organization.VERISURE_GROUP,
                     DEPARTMENTS.get(i % DEPARTMENTS.size())));
@@ -102,12 +109,12 @@ public class UserSeeder implements CommandLineRunner {
         // Cubren los cuatro UserStatus.
         List<Partner> partners = partnerRepository.findAll();
         String[][] partnerPeople = {
-                {"Marta Ribas",    "marta.ribas@caritasbcn.org",             "Cáritas Barcelona"},
-                {"Lucía Ferrer",   "lucia.ferrer@fundacionsolitaria.org",    "Fundación Solitaria"},
-                {"Andrés Molina",  "andres.molina@educamosjuntos.org",       "Educamos Juntos"},
-                {"Nuria Camps",    "nuria.camps@prevenciontotal.org",        "Prevención Total"},
-                {"Pilar Server",   "pilar.server@bancoalimentos.org",        "Banco de Alimentos"},
-                {"Jorge Ibáñez",   "jorge.ibanez@cruzroja.org",              "Cruz Roja Valencia"},
+                {"Marta Ribas",    "marta.ribas@caritasbcn.ex",             "Cáritas Barcelona"},
+                {"Lucía Ferrer",   "lucia.ferrer@fundacionsolitaria.ex",    "Fundación Solitaria"},
+                {"Andrés Molina",  "andres.molina@educamosjuntos.ex",       "Educamos Juntos"},
+                {"Nuria Camps",    "nuria.camps@prevenciontotal.ex",        "Prevención Total"},
+                {"Pilar Server",   "pilar.server@bancoalimentos.ex",        "Banco de Alimentos"},
+                {"Jorge Ibáñez",   "jorge.ibanez@cruzroja.ex",              "Cruz Roja Valencia"},
         };
         for (String[] row : partnerPeople) {
             users.add(partnerUser(row[0], row[1],
@@ -116,13 +123,13 @@ public class UserSeeder implements CommandLineRunner {
 
         // Segunda cuenta de una organización que ya está ACTIVE: es el caso de la regla
         // del CIF ya registrado, que sin este dato no se puede probar.
-        users.add(partnerUser("Pau Estévez", "pau.estevez@caritasbcn.org",
+        users.add(partnerUser("Pau Estévez", "pau.estevez@caritasbcn.ex",
                 findByName(partners, "Cáritas Barcelona"), UserStatus.PENDING_VERIFICATION));
 
-        users.add(partnerUser("Elena Vargas", "elena.vargas@aldeasinfantiles.org",
+        users.add(partnerUser("Elena Vargas", "elena.vargas@aldeasinfantiles.ex",
                 findByName(partners, "Aldeas Infantiles"), UserStatus.PENDING_APPROVAL));
 
-        users.add(partnerUser("Rosa Delgado", "rosa.delgado@manosunidas.org",
+        users.add(partnerUser("Rosa Delgado", "rosa.delgado@manosunidas.ex",
                 findByName(partners, "Manos Unidas"), UserStatus.REJECTED));
 
         userRepository.saveAll(users);
@@ -143,6 +150,10 @@ public class UserSeeder implements CommandLineRunner {
      * Persona de una entidad colaboradora. {@code organization} y
      * {@code department} van a {@code null}: no pertenece ni a Verisure España ni
      * a Verisure Grupo, y por eso los agregados del dashboard la excluyen.
+     *
+     * <p>{@code verifiedAt} solo queda a {@code null} mientras falte confirmar el
+     * correo: una cuenta {@code PENDING_APPROVAL} ya lo confirmó, y sin la marca
+     * la bandeja de administración la enseñaría como «sin verificar».
      */
     private User partnerUser(String fullName, String email, Partner partner, UserStatus status) {
         User u = base(fullName, email, Role.PARTNER);
@@ -150,6 +161,9 @@ public class UserSeeder implements CommandLineRunner {
         u.setDepartment(null);
         u.setPartner(partner);
         u.setStatus(status);
+        u.setCreatedAt(PARTNER_SIGNUP);
+        boolean emailConfirmed = status != UserStatus.PENDING_VERIFICATION;
+        u.setVerifiedAt(emailConfirmed ? PARTNER_SIGNUP : null);
         return u;
     }
 

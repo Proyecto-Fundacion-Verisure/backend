@@ -16,6 +16,10 @@ import com.verisure.backend.entity.Registration;
  * <p>{@code from()} lee las relaciones perezosas {@code registration} y
  * {@code activity}: llamarla dentro de la sesión.
  *
+ * <p>{@code evidenceUrl} es absoluta y apunta al backend, lista para un
+ * {@code href} o un {@code src}; la compone el servicio, porque el record no
+ * sabe desde qué host se le pide.
+ *
  * <p>Tarea: B1-03.
  */
 public record ClosureDetailResponse(
@@ -29,7 +33,7 @@ public record ClosureDetailResponse(
         String evidenceUrl,
         Instant submittedAt) {
 
-    public static ClosureDetailResponse from(ParticipationClosure closure) {
+    public static ClosureDetailResponse from(ParticipationClosure closure, String evidenceUrl) {
         Registration registration = closure.getRegistration();
         Activity activity = registration.getActivity();
         return new ClosureDetailResponse(
@@ -40,7 +44,7 @@ public record ClosureDetailResponse(
                 closure.getActualHours(),
                 closure.getRating(),
                 closure.getComment(),
-                closure.getEvidenceUrl(),
+                evidenceUrl,
                 closure.getSubmittedAt());
     }
 }

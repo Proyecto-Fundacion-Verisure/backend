@@ -79,7 +79,10 @@ public class SpringConfig {
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/dashboard/**").hasRole("ADMIN")
                         .requestMatchers("/api/org/**").hasRole("PARTNER")
-                        .requestMatchers("/uploads/**").authenticated()
+                        // Las evidencias las abre el navegador con un enlace directo,
+                        // que no puede llevar cabecera: por eso son públicas en
+                        // lectura. La protección es el nombre, un UUID del servidor.
+                        .requestMatchers(GET, "/uploads/**").permitAll()
 
                         // Las rutas que sirven a dos roles llegan aquí: quién
                         // puede lo decide el servicio con NOT_OWNER.

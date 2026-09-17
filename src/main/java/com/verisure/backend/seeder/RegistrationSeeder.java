@@ -23,13 +23,19 @@ import com.verisure.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 
 /**
- * Siembra 10 registrations con los <b>seis</b> {@code RegistrationStatus}
+ * Siembra 13 registrations con los <b>seis</b> {@code RegistrationStatus}
  * representados.
  *
- * <p>Es el seeder del que depende la demo entera: las tres registrations en
- * {@code CLOSED} de «Acompañamiento a mayores» son <b>las únicas filas que ve el
- * dashboard</b>, porque {@code findDashboardData} filtra por ese estado. Si
- * alguien las cambia, el dashboard sale vacío y nada lo avisa.
+ * <p>Es el seeder del que depende la demo entera: las seis registrations en
+ * {@code CLOSED} —tres de «Acompañamiento a mayores» y tres de «Campaña contra el
+ * acoso escolar»— son <b>las únicas filas que ve el dashboard</b>, porque
+ * {@code findDashboardData} filtra por ese estado. Si alguien las cambia, el
+ * dashboard sale vacío y nada lo avisa. Van en dos actividades de línea, entidad
+ * y trimestre distintos, y con gente de las dos organizaciones, para que las
+ * distribuciones y la variación trimestral no salgan de una sola porción.
+ *
+ * <p>Fernando Toro (la sexta empleada) no tiene ninguna inscripción a propósito:
+ * es quien se apunta en vivo en la demo.
  *
  * <p>Dentro de una misma actividad no se repite ninguna empleada: la regla «no
  * volver a inscribirse» es un índice parcial que JPA no puede declarar, así que
@@ -62,17 +68,25 @@ public class RegistrationSeeder implements CommandLineRunner {
                 .orElseThrow(() -> new IllegalStateException("UserSeeder no dejó ninguna ADMIN"));
 
         Activity elderlySupport = activityByTitle("Acompañamiento a mayores");
+        Activity bullyingCampaign = activityByTitle("Campaña contra el acoso escolar");
         Activity digitalLiteracy = activityByTitle("Alfabetización digital");
-        Activity careHomeVisits    = activityByTitle("Visitas a residencias");
-        Activity beachCleanup         = activityByTitle("Limpieza de playas");
+        Activity careHomeVisits = activityByTitle("Visitas a residencias");
+        Activity beachCleanup = activityByTitle("Limpieza de playas");
         Activity selfProtection = activityByTitle("Autoprotección para adolescentes");
 
         List<Registration> registrations = new ArrayList<>();
 
-        // 3 CLOSED · las únicas que alimentan el dashboard
+        // 3 CLOSED en «Acompañamiento a mayores» · primer trimestre, VERISURE_ES
         for (int i = 0; i < 3; i++) {
             registrations.add(registration(elderlySupport, employees.get(i), RegistrationStatus.CLOSED,
                     true, null, admin, LocalDate.of(2026, 2, 10)));
+        }
+
+        // 3 CLOSED en «Campaña contra el acoso escolar» · segundo trimestre, con dos
+        // de VERISURE_GROUP (las empleadas 6 y 7). Nunca la 5, que es Fernando.
+        for (int i : new int[] {2, 6, 7}) {
+            registrations.add(registration(bullyingCampaign, employees.get(i), RegistrationStatus.CLOSED,
+                    true, null, admin, LocalDate.of(2026, 4, 15)));
         }
 
         // 2 PENDING_CLOSURE · la cola de cierres de administración

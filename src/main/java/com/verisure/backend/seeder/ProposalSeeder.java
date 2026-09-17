@@ -62,9 +62,10 @@ public class ProposalSeeder implements CommandLineRunner {
                         12, "desoledad", 60,
                         ProposalStatus.NEW, null, null, 5),
 
+                // De Cáritas, la entidad de la demo: es la única NEW que se ve desde el rol entidad.
                 proposal("Apoyo escolar en centros de acogida durante el curso.",
                         20, "educar", 120,
-                        ProposalStatus.NEW, partners.get(6), null, 8),
+                        ProposalStatus.NEW, partners.get(0), null, 8),
 
                 proposal("Jornada de recogida de residuos en las playas del litoral.",
                         25, "medioambiente", 300,
