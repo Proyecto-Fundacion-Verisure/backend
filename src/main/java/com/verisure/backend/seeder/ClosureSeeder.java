@@ -51,7 +51,6 @@ public class ClosureSeeder implements CommandLineRunner {
     @Override
     public void run(String... args) {
         if (participationClosureRepository.count() > 0 || activityClosureRepository.count() > 0) {
-            backfillReferences(); // B1-21: cierres sembrados antes no tenían referencia.
             return; // idempotente: no duplica al reiniciar
         }
 
@@ -80,9 +79,11 @@ public class ClosureSeeder implements CommandLineRunner {
                     null, LocalDate.of(2026, 4, 27)));
         }
 
+        // La referencia es CERT-año-id: necesita el id que asigna la base de
+        // datos, por eso se rellena tras el save y no en el constructor-ayudante (B1-21).
+        closures = participationClosureRepository.saveAll(closures);
+        closures.forEach(pc -> pc.setReference(CertificateReference.forClosure(pc)));
         participationClosureRepository.saveAll(closures);
-
-        backfillReferences(); // B1-21: asigna referencia a lo recién sembrado.
 
         List<ActivityClosure> activityClosures = new ArrayList<>();
         if (!closed.isEmpty()) {
@@ -100,15 +101,6 @@ public class ClosureSeeder implements CommandLineRunner {
                     null, null));
         }
         activityClosureRepository.saveAll(activityClosures);
-    }
-
-    /** B1-21 · Asigna la referencia del certificado a todo cierre sin ella. Idempotente. */
-    private void backfillReferences() {
-        List<ParticipationClosure> missing = participationClosureRepository.findAll().stream()
-                .filter(pc -> pc.getReference() == null)
-                .toList();
-        missing.forEach(pc -> pc.setReference(CertificateReference.forClosure(pc)));
-        participationClosureRepository.saveAll(missing);
     }
 
     private List<Registration> byStatus(RegistrationStatus status) {
