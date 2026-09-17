@@ -92,32 +92,32 @@ public class ActivitySeeder implements CommandLineRunner {
         activities.add(activity("Refuerzo escolar",
                 "Apoyo escolar para menores en riesgo de exclusión.",
                 "educar", "PRESENCIAL", "Madrid", 6, 30,
-                ActivityStatus.IN_PROGRESS, today.minusDays(10), today.plusDays(20),
+                ActivityStatus.IN_PROGRESS, today.minusDays(10), today.plusDays(45),
                 today.minusDays(20), partners.get(2), admin));
 
         activities.add(activity("Mentoría online para jóvenes",
                 "Acompañamiento individual en la búsqueda del primer empleo.",
                 "educar", "ONLINE", null, 4, 16,
-                ActivityStatus.IN_PROGRESS, today.minusDays(5), today.plusDays(25),
+                ActivityStatus.IN_PROGRESS, today.minusDays(5), today.plusDays(50),
                 today.minusDays(15), partners.get(2), admin));
 
         activities.add(activity("Limpieza de playas",
                 "Jornada de recogida de residuos en el litoral.",
                 "medioambiente", "PRESENCIAL", "Valencia", 8, 6,
-                ActivityStatus.PUBLISHED, today.plusDays(20), today.plusDays(20),
-                today.plusDays(12), partners.get(5), admin));
+                ActivityStatus.PUBLISHED, today.plusDays(5), today.plusDays(25),
+                today.plusDays(0), partners.get(5), admin));
 
         activities.add(activity("Reparto del banco de alimentos",
                 "Clasificación y reparto de alimentos a familias en situación vulnerable.",
                 "medioambiente", "PRESENCIAL", "Valencia", 6, 8,
-                ActivityStatus.PUBLISHED, today.plusDays(30), today.plusDays(31),
-                today.plusDays(21), partners.get(4), admin));
+                ActivityStatus.PUBLISHED, today.plusDays(10), today.plusDays(40),
+                today.plusDays(2), partners.get(4), admin));
 
         activities.add(activity("Charlas de prevención",
                 "Charlas en institutos sobre convivencia y prevención del acoso.",
                 "acoso", "MIXTO", "Barcelona", 5, 4,
-                ActivityStatus.PUBLISHED, today.plusDays(40), today.plusDays(40),
-                today.plusDays(30), partners.get(3), admin));
+                ActivityStatus.PUBLISHED, today.plusDays(15), today.plusDays(50),
+                today.plusDays(5), partners.get(3), admin));
 
         // Aforo 2 para que con ocho empleadas se pueda llenar de verdad y quede cola.
         activities.add(activity("Visitas a residencias",
@@ -129,8 +129,8 @@ public class ActivitySeeder implements CommandLineRunner {
         activities.add(activity("Seguridad en el hogar",
                 "Curso en línea sobre prevención de riesgos domésticos.",
                 "educar", "ONLINE", null, 10, 8,
-                ActivityStatus.DRAFT, today.plusDays(60), today.plusDays(62),
-                today.plusDays(50), partners.get(1), admin));
+                ActivityStatus.DRAFT, today.plusDays(60), today.plusDays(80),
+                today.plusDays(40), partners.get(1), admin));
 
         // Propuesta por una partnerUser y pendiente de que la Fundación la apruebe.
         activities.add(activity("Voluntariado ambiental",
