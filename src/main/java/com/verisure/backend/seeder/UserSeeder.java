@@ -1,5 +1,8 @@
 package com.verisure.backend.seeder;
 
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -47,6 +50,10 @@ public class UserSeeder implements CommandLineRunner {
      * existen fuera de producción, gracias a {@code @Profile("!prod")}.
      */
     public static final String PASSWORD_DEMO = "Verisure2026!";
+
+    /** Alta y verificación de las cuentas de entidad: fija, para que sea igual en todas las máquinas. */
+    private static final Instant PARTNER_SIGNUP =
+            LocalDate.of(2026, 1, 10).atStartOfDay().toInstant(ZoneOffset.UTC);
 
     private static final List<String> DEPARTMENTS = List.of(
             "Atención al Cliente", "Operaciones", "Tecnología",
@@ -143,6 +150,10 @@ public class UserSeeder implements CommandLineRunner {
      * Persona de una entidad colaboradora. {@code organization} y
      * {@code department} van a {@code null}: no pertenece ni a Verisure España ni
      * a Verisure Grupo, y por eso los agregados del dashboard la excluyen.
+     *
+     * <p>{@code verifiedAt} solo queda a {@code null} mientras falte confirmar el
+     * correo: una cuenta {@code PENDING_APPROVAL} ya lo confirmó, y sin la marca
+     * la bandeja de administración la enseñaría como «sin verificar».
      */
     private User partnerUser(String fullName, String email, Partner partner, UserStatus status) {
         User u = base(fullName, email, Role.PARTNER);
@@ -150,6 +161,9 @@ public class UserSeeder implements CommandLineRunner {
         u.setDepartment(null);
         u.setPartner(partner);
         u.setStatus(status);
+        u.setCreatedAt(PARTNER_SIGNUP);
+        boolean emailConfirmed = status != UserStatus.PENDING_VERIFICATION;
+        u.setVerifiedAt(emailConfirmed ? PARTNER_SIGNUP : null);
         return u;
     }
 

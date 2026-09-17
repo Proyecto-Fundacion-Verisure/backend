@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import com.verisure.backend.dto.closure.CertificateResponse;
 import com.verisure.backend.dto.closure.ClosureDetailResponse;
@@ -63,7 +64,8 @@ public class ParticipationClosureServiceImpl implements ParticipationClosureServ
         closure.setRegistration(registration);
 
         try {
-            return ClosureDetailResponse.from(participationClosureRepository.saveAndFlush(closure));
+            ParticipationClosure saved = participationClosureRepository.saveAndFlush(closure);
+            return ClosureDetailResponse.from(saved, absoluteUrl(saved.getEvidenceUrl()));
         } catch (DataIntegrityViolationException e) {
             // Salvavidas para una carrera: dos POST simultáneos pasan
             // ensureNotAlreadyClosed y el segundo revienta el constraint único de
@@ -79,7 +81,19 @@ public class ParticipationClosureServiceImpl implements ParticipationClosureServ
         User requester = findUserOrFail(userEmail);
         ensureOwnerOrAdmin(closure, requester);
 
-        return ClosureDetailResponse.from(closure);
+        return ClosureDetailResponse.from(closure, absoluteUrl(closure.getEvidenceUrl()));
+    }
+
+    /**
+     * La ruta se guarda relativa y el host lo pone la petición en curso: así el
+     * navegador abre la evidencia contra el backend y no contra el frontend, y
+     * ninguna fila lleva grabado un dominio.
+     */
+    private String absoluteUrl(String relativePath) {
+        if (relativePath == null) {
+            return null;
+        }
+        return ServletUriComponentsBuilder.fromCurrentContextPath().path(relativePath).toUriString();
     }
 
     @Override

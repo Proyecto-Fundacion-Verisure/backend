@@ -21,7 +21,7 @@ import lombok.extern.slf4j.Slf4j;
  * <p>La subcarpeta va por dominio: {@code evidencias} para los cierres (B1-03).
  * La carpeta {@code uploads/} se crea al primer guardado; está en
  * {@code .gitignore} y la sirve {@code StaticResourceConfig} bajo
- * {@code /uploads/**}, ruta que pide token.
+ * {@code /uploads/**}, ruta pública en lectura.
  *
  * <p>El nombre del archivo lo genera el servidor — un UUID — y la extensión sale
  * del tipo de contenido, nunca del nombre que manda el cliente.

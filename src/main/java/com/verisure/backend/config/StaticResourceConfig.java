@@ -11,8 +11,10 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
  * <p>La carpeta {@code uploads/} está en {@code .gitignore}: cada persona tiene
  * los suyos y no se versionan.
  *
- * <p><b>Estas rutas piden token</b> —la regla está en {@code SpringConfig}—,
- * así que una evidencia no se ve sin haber entrado.
+ * <p><b>Estas rutas son públicas en lectura</b> —la regla está en
+ * {@code SpringConfig}—: el navegador abre la evidencia con un enlace directo,
+ * que no puede llevar el token. La protección es el nombre del archivo, un UUID
+ * que genera el servidor.
  */
 @Configuration
 public class StaticResourceConfig implements WebMvcConfigurer {
