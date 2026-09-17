@@ -73,9 +73,9 @@ public class UserSeeder implements CommandLineRunner {
         List<User> users = new ArrayList<>();
 
         // 2 ADMIN · la Fundación
-        users.add(verisureUser("Carmen Ortega", "carmen.ortega@fundacionverisure.org",
+        users.add(verisureUser("Carmen Ortega", "carmen.ortega@verisure.ex",
                 Role.ADMIN, Organization.VERISURE_ES, "Fundación"));
-        users.add(verisureUser("Diego Salas", "diego.salas@fundacionverisure.org",
+        users.add(verisureUser("Diego Salas", "diego.salas@verisure.ex",
                 Role.ADMIN, Organization.VERISURE_ES, "Fundación"));
 
         // 8 EMPLOYEE · 5 en VERISURE_ES y 3 en VERISURE_GROUP, los seis departamentos rotando
@@ -92,7 +92,7 @@ public class UserSeeder implements CommandLineRunner {
         for (int i = 0; i < employees.length; i++) {
             users.add(verisureUser(
                     employees[i][0],
-                    employees[i][1] + "@verisure.es",
+                    employees[i][1] + "@verisure.ex",
                     Role.EMPLOYEE,
                     i < 5 ? Organization.VERISURE_ES : Organization.VERISURE_GROUP,
                     DEPARTMENTS.get(i % DEPARTMENTS.size())));
@@ -102,12 +102,12 @@ public class UserSeeder implements CommandLineRunner {
         // Cubren los cuatro UserStatus.
         List<Partner> partners = partnerRepository.findAll();
         String[][] partnerPeople = {
-                {"Marta Ribas",    "marta.ribas@caritasbcn.org",             "Cáritas Barcelona"},
-                {"Lucía Ferrer",   "lucia.ferrer@fundacionsolitaria.org",    "Fundación Solitaria"},
-                {"Andrés Molina",  "andres.molina@educamosjuntos.org",       "Educamos Juntos"},
-                {"Nuria Camps",    "nuria.camps@prevenciontotal.org",        "Prevención Total"},
-                {"Pilar Server",   "pilar.server@bancoalimentos.org",        "Banco de Alimentos"},
-                {"Jorge Ibáñez",   "jorge.ibanez@cruzroja.org",              "Cruz Roja Valencia"},
+                {"Marta Ribas",    "marta.ribas@caritasbcn.ex",             "Cáritas Barcelona"},
+                {"Lucía Ferrer",   "lucia.ferrer@fundacionsolitaria.ex",    "Fundación Solitaria"},
+                {"Andrés Molina",  "andres.molina@educamosjuntos.ex",       "Educamos Juntos"},
+                {"Nuria Camps",    "nuria.camps@prevenciontotal.ex",        "Prevención Total"},
+                {"Pilar Server",   "pilar.server@bancoalimentos.ex",        "Banco de Alimentos"},
+                {"Jorge Ibáñez",   "jorge.ibanez@cruzroja.ex",              "Cruz Roja Valencia"},
         };
         for (String[] row : partnerPeople) {
             users.add(partnerUser(row[0], row[1],
@@ -116,13 +116,13 @@ public class UserSeeder implements CommandLineRunner {
 
         // Segunda cuenta de una organización que ya está ACTIVE: es el caso de la regla
         // del CIF ya registrado, que sin este dato no se puede probar.
-        users.add(partnerUser("Pau Estévez", "pau.estevez@caritasbcn.org",
+        users.add(partnerUser("Pau Estévez", "pau.estevez@caritasbcn.ex",
                 findByName(partners, "Cáritas Barcelona"), UserStatus.PENDING_VERIFICATION));
 
-        users.add(partnerUser("Elena Vargas", "elena.vargas@aldeasinfantiles.org",
+        users.add(partnerUser("Elena Vargas", "elena.vargas@aldeasinfantiles.ex",
                 findByName(partners, "Aldeas Infantiles"), UserStatus.PENDING_APPROVAL));
 
-        users.add(partnerUser("Rosa Delgado", "rosa.delgado@manosunidas.org",
+        users.add(partnerUser("Rosa Delgado", "rosa.delgado@manosunidas.ex",
                 findByName(partners, "Manos Unidas"), UserStatus.REJECTED));
 
         userRepository.saveAll(users);

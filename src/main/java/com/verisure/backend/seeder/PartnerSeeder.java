@@ -45,21 +45,21 @@ public class PartnerSeeder implements CommandLineRunner {
 
         partnerRepository.saveAll(List.of(
                 partner("Cáritas Barcelona", "G08123456", "Marta Ribas",
-                        "contacto@caritasbcn.org", "934112233", PartnerStatus.ACTIVE, 1),
+                        "contacto@caritasbcn.ex", "934112233", PartnerStatus.ACTIVE, 1),
                 partner("Fundación Solitaria", "G28234567", "Lucía Ferrer",
-                        "hola@fundacionsolitaria.org", "915223344", PartnerStatus.ACTIVE, 2),
+                        "hola@fundacionsolitaria.ex", "915223344", PartnerStatus.ACTIVE, 2),
                 partner("Educamos Juntos", "G28345678", "Andrés Molina",
-                        "info@educamosjuntos.org", "915334455", PartnerStatus.ACTIVE, 3),
+                        "info@educamosjuntos.ex", "915334455", PartnerStatus.ACTIVE, 3),
                 partner("Prevención Total", "G08456789", "Nuria Camps",
-                        "contacto@prevenciontotal.org", "934445566", PartnerStatus.ACTIVE, 4),
+                        "contacto@prevenciontotal.ex", "934445566", PartnerStatus.ACTIVE, 4),
                 partner("Banco de Alimentos", "G46567890", "Pilar Server",
-                        "voluntariado@bancoalimentos.org", "963556677", PartnerStatus.ACTIVE, 5),
+                        "voluntariado@bancoalimentos.ex", "963556677", PartnerStatus.ACTIVE, 5),
                 partner("Cruz Roja Valencia", "G46678901", "Jorge Ibáñez",
-                        "valencia@cruzroja.org", "963667788", PartnerStatus.ACTIVE, 6),
+                        "valencia@cruzroja.ex", "963667788", PartnerStatus.ACTIVE, 6),
                 partner("Aldeas Infantiles", "G28789012", "Elena Vargas",
-                        "info@aldeasinfantiles.org", "915778899", PartnerStatus.PENDING, 7),
+                        "info@aldeasinfantiles.ex", "915778899", PartnerStatus.PENDING, 7),
                 partner("Manos Unidas", "G41890123", "Rosa Delgado",
-                        "contacto@manosunidas.org", "954889900", PartnerStatus.REJECTED, 8)));
+                        "contacto@manosunidas.ex", "954889900", PartnerStatus.REJECTED, 8)));
     }
 
     /** {@code dayOfJanuary} escalona los {@code createdAt} sin usar aleatoriedad. */

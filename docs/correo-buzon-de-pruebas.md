@@ -2,11 +2,11 @@
 
 Guía corta para las seis. Desde `B3-09` la aplicación manda correos de verdad: trece avisos, con sus plantillas. Este documento explica **dónde aterrizan esos correos mientras desarrollamos** y qué hay que instalar.
 
-**Ningún correo sale nunca a una dirección real.** Las treinta cuentas de empleado de la semilla son inventadas —`ana.gil@verisure.es` y compañía—, así que enviarlas a internet solo generaría rebotes. Todo va a un buzón de pruebas, que es un servidor que recoge los mensajes y los enseña en una bandeja web sin entregárselos a nadie.
+**Ningún correo sale nunca a una dirección real.** Las treinta cuentas de empleado de la semilla son inventadas —`ana.gil@verisure.ex` y compañía—, así que enviarlas a internet solo generaría rebotes. Todo va a un buzón de pruebas, que es un servidor que recoge los mensajes y los enseña en una bandeja web sin entregárselos a nadie.
 
 > ⚠️ **Esa garantía depende de una sola línea: `MAIL_HOST`.** La aplicación entrega los correos al servidor que diga esa variable y a ningún otro. Mientras valga `localhost` o `sandbox.smtp.mailtrap.io`, los mensajes se quedan en la bandeja de pruebas.
 >
-> Si alguien pone ahí un servidor de envío real —el SMTP de Gmail, Brevo, SendGrid—, los correos **sí** saldrían a internet. Y ojo: `verisure.es` es un dominio que existe de verdad, así que los mensajes de prueba acabarían en buzones de personas reales.
+> Si alguien pone ahí un servidor de envío real —el SMTP de Gmail, Brevo, SendGrid—, los correos **sí** saldrían a internet. Las direcciones de la semilla usan el TLD ficticio `.ex` —`@verisure.ex` y compañía—, que no existe de verdad, así que esos mensajes no llegarían a buzones de personas reales.
 >
 > Por eso `MAIL_HOST` no apunta nunca a un servidor de envío mientras la base de datos tenga datos de prueba, que es siempre en desarrollo.
 
@@ -108,7 +108,7 @@ Los otros siete —actividad cancelada, enviada a revisión, aprobada, devuelta,
 Mira el registro de la aplicación, porque **el correo nunca tumba la operación de negocio**: si el buzón está caído, la inscripción se confirma igual y el fallo queda como aviso.
 
 ```
-INFO  ... Correo «Plaza confirmada · Limpieza de playas» enviado a ana.gil@verisure.es
+INFO  ... Correo «Plaza confirmada · Limpieza de playas» enviado a ana.gil@verisure.ex
 WARN  ... No se pudo enviar «...» a ...: Mail server connection failed
 ```
 
@@ -127,4 +127,4 @@ WARN  ... No se pudo enviar «...» a ...: Mail server connection failed
 
 Y Mailtrap se queda guardado para el día de la presentación.
 
-**`MAIL_HOST` se queda en `localhost`.** Es lo único que separa una bandeja de pruebas de un envío real a direcciones `@verisure.es`.
+**`MAIL_HOST` se queda en `localhost`.** Es lo único que separa una bandeja de pruebas de un envío real a direcciones `@verisure.ex`.
