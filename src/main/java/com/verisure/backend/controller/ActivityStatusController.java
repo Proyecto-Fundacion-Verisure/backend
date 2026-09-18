@@ -15,9 +15,6 @@ import lombok.RequiredArgsConstructor;
  * <p>Existe para no depender de esperar a las tres de la madrugada al enseñar
  * la demo. Hace exactamente lo mismo que la tarea programada.
  *
- * <p><b>Este endpoint no está en el contrato de API</b>: es la enmienda
- * pendiente número 1, redactada en {@code docs/b3-17-enmienda-contrato.md}.
- *
  * <p>Dueña: BE3 · Tarea: B3-17.
  */
 @RestController
@@ -26,10 +23,10 @@ public class ActivityStatusController {
 
     private final ActivityStatusRefresher activityStatusRefresher;
 
+    /** Ejecuta el paso de estados y devuelve cuántas actividades cambiaron. */
     @PostMapping("/api/admin/activities/refresh-status")
     @PreAuthorize("hasRole('ADMIN')")
     public RefreshStatusResponse refreshStatus() {
         return activityStatusRefresher.refresh();
     }
-
 }

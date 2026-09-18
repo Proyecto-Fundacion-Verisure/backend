@@ -17,9 +17,9 @@ import lombok.RequiredArgsConstructor;
 /**
  * Traduce la entidad {@link User} a lo que Spring Security entiende.
  *
- * <p><b>El prefijo {@code ROLE_} no es decorativo.</b> {@code hasRole("PARTNER")}
+ * <p>El prefijo {@code ROLE_} no es decorativo. {@code hasRole("PARTNER")}
  * busca internamente la autoridad {@code ROLE_PARTNER}. Si aquí se expusiera
- * {@code PARTNER} a secas, ninguna regla casaría y <b>todo devolvería 403</b> sin
+ * {@code PARTNER} a secas, ninguna regla casaría y todo devolvería 403 sin
  * ningún error que lo explicara. Quien prefiera escribir la autoridad literal usa
  * {@code hasAuthority}, pero en este proyecto se usa {@code hasRole}.
  */

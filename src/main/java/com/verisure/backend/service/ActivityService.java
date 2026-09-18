@@ -24,8 +24,8 @@ public interface ActivityService {
     /**
      * Actualiza los datos de la actividad · B2-05.
      *
-     * <p>Mismas validaciones que la creación. Una actividad <b>finalizada</b> no
-     * se edita ({@code ACTIVITY_FINISHED}) y una <b>cancelada</b> tampoco
+     * <p>Mismas validaciones que la creación. Una actividad finalizada no
+     * se edita ({@code ACTIVITY_FINISHED}) y una cancelada tampoco
      * ({@code ACTIVITY_NOT_EDITABLE}).
      */
     ActivityResponse update(Long activityId, UpdateActivityRequest request);

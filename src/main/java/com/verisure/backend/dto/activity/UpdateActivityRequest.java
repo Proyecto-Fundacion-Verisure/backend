@@ -21,7 +21,7 @@ public record UpdateActivityRequest(
     @NotBlank String description,
     @NotBlank @Size(max = 60) String line,
     @NotBlank @Size(max= 20) String mode,
-    @Size(max = 160) String location, 
+    @Size(max = 160) String location,
     @NotNull LocalDate startDate,
     @NotNull LocalDate endDate,
     @NotNull LocalDate registrationDeadline,

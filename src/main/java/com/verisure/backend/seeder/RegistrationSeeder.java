@@ -23,12 +23,12 @@ import com.verisure.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 
 /**
- * Siembra 13 registrations con los <b>seis</b> {@code RegistrationStatus}
+ * Siembra 13 registrations con los seis {@code RegistrationStatus}
  * representados.
  *
  * <p>Es el seeder del que depende la demo entera: las seis registrations en
  * {@code CLOSED} —tres de «Acompañamiento a mayores» y tres de «Campaña contra el
- * acoso escolar»— son <b>las únicas filas que ve el dashboard</b>, porque
+ * acoso escolar»— son las únicas filas que ve el dashboard, porque
  * {@code findDashboardData} filtra por ese estado. Si alguien las cambia, el
  * dashboard sale vacío y nada lo avisa. Van en dos actividades de línea, entidad
  * y trimestre distintos, y con gente de las dos organizaciones, para que las

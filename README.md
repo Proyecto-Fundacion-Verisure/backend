@@ -28,8 +28,8 @@ Spring Boot REST API for managing Fundación Verisure's volunteer program: activ
 | | ![openpdf](https://img.shields.io/badge/openpdf-1.3-C00) | PDF export of the impact dashboard. |
 | | ![spring-dotenv](https://img.shields.io/badge/spring--dotenv-4.0-ECD53F) | Loads `.env` into the Spring environment. |
 | Test | ![junit](https://img.shields.io/badge/junit-5-25A162?logo=junit5&logoColor=white) | Test runner. |
-| | ![mockito](https://img.shields.io/badge/mockito-5-78A641) | Mocks for service unit tests. |
-| | ![h2](https://img.shields.io/badge/h2-in--memory-1E90FF) | In-memory database for tests. |
+| | ![mockito](https://img.shields.io/badge/mockito-5-78A641) | Mocks for service unit tests and for the services behind the web-layer tests. |
+| | ![spring-test](https://img.shields.io/badge/spring--test-MockMvc-6DB33F?logo=spring&logoColor=white) | `@WebMvcTest` integration tests with the real security chain. |
 | Tools | ![vscode](https://img.shields.io/badge/VS_Code-007ACC?logo=visualstudio&logoColor=white) | Code editor. |
 | | ![postman](https://img.shields.io/badge/Postman-FF6C37?logo=postman&logoColor=white) | Manual endpoint testing. |
 | Languages | ![java](https://img.shields.io/badge/Java-25-ED8B00?logo=openjdk&logoColor=white) | Backend language. |
@@ -76,7 +76,7 @@ All configuration lives in `.env` (ignored by git). `.env.example` lists every v
 | Command | Description |
 | --- | --- |
 | `./mvnw spring-boot:run` | Starts the API in development mode with the seeders enabled. |
-| `./mvnw test` | Runs all tests. |
+| `./mvnw test` | Runs all tests: unit tests for services and security (Mockito), and web-layer integration tests (`*IT`) that go through the real JWT filters and `GlobalExceptionHandler` with mocked services. No database is needed. |
 | `./mvnw clean package` | Compiles, runs the tests, and builds the jar in `target/`. |
 | `java -jar target/backend-0.0.1-SNAPSHOT.jar` | Runs the packaged application. |
 | `SPRING_PROFILES_ACTIVE=prod ./mvnw spring-boot:run` | Starts without the seeders (`@Profile("!prod")`). |

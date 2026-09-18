@@ -12,7 +12,8 @@ import com.verisure.backend.entity.enums.RegistrationStatus;
  * buena a la persona, status dice dónde está. Se puede estar aceptado y seguir
  * en WAITLISTED. queuePosition es nulo fuera de la cola.
  *
- * <p>from() lee la relación perezosa activity: llamarla dentro de la sesión.
+ * <p>from() lee la relación perezosa activity: se llama desde el servicio,
+ * dentro de la transacción.
  *
  * <p>Dueña: BE3 · Tarea: B3-02.
  */

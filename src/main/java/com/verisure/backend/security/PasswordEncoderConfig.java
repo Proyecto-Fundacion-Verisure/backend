@@ -8,7 +8,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 /**
  * El codificador de contraseñas, en su propia clase.
  *
- * <p><b>Está separado de {@link SpringConfig} a propósito.</b> Si el <i>bean</i>
+ * <p>Está separado de {@link SpringConfig} a propósito. Si el <i>bean</i>
  * viviera allí, se formaría un ciclo: {@code SpringConfig} necesita
  * {@link CustomAuthenticationManager} para montar el filtro de login, y el manager
  * necesita el codificador para comparar la contraseña. Spring no puede resolver

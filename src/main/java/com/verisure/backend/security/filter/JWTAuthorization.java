@@ -19,14 +19,14 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 
 /**
- * Valida el token en <b>cada</b> petición y puebla el {@code SecurityContext}.
+ * Valida el token en cada petición y puebla el {@code SecurityContext}.
  *
- * <p><b>Nunca lanza.</b> Las rutas públicas pasan también por aquí; si reventara
+ * <p>Nunca lanza. Las rutas públicas pasan también por aquí; si reventara
  * con una petición sin cabecera, el formulario público de propuestas dejaría de
  * funcionar. Sin token, o con uno inválido, no autentica a nadie y deja que la
  * cadena decida si esa ruta lo necesitaba.
  *
- * <p>El rol se saca <b>del propio token</b>, sin consultar la base de datos: es
+ * <p>El rol se saca del propio token, sin consultar la base de datos: es
  * lo que hace que JWT no cueste una consulta por petición. La contrapartida es
  * que un cambio de rol o un rechazo de cuenta no tienen efecto hasta que el token
  * caduca, como mucho dos horas.

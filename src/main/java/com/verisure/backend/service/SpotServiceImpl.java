@@ -7,6 +7,7 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.verisure.backend.dto.registration.RegistrationResponse;
 import com.verisure.backend.entity.Activity;
 import com.verisure.backend.entity.Registration;
 import com.verisure.backend.entity.User;
@@ -32,7 +33,7 @@ public class SpotServiceImpl implements SpotService {
 
     @Override
     @Transactional
-    public Registration register(Long activityId, String userEmail) {
+    public RegistrationResponse register(Long activityId, String userEmail) {
         SpotInfo spot = findSpotInfoOrFail(activityId);
         User user = findUserOrFail(userEmail);
 
@@ -48,7 +49,8 @@ public class SpotServiceImpl implements SpotService {
         }
 
         Registration registration = buildQueuedRegistration(activityId, user);
-        return registrationRepository.save(registration);
+        Registration saved = registrationRepository.save(registration);
+        return RegistrationResponse.from(saved);
     }
 
     @Override

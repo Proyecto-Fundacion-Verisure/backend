@@ -38,7 +38,7 @@ public class Partner {
 
     @Column(name = "contact_name", length = 120)
     private String contactName;
-    
+
     @Column(unique = true, nullable = false)
     private String email;
 

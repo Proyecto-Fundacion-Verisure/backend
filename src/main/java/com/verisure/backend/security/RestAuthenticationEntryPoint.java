@@ -12,7 +12,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 
 /**
- * Responde <b>401</b> cuando la petición no viene identificada: sin token, o con
+ * Responde 401 cuando la petición no viene identificada: sin token, o con
  * uno inválido, manipulado o caducado.
  *
  * <p>401 es «no sé quién eres». Si además hiciera falta un rol concreto, eso lo

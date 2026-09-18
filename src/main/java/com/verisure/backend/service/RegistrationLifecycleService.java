@@ -1,7 +1,7 @@
 package com.verisure.backend.service;
 
 public interface RegistrationLifecycleService {
-    
+
     /** La llama BE2 al cancelar una actividad. Devuelve cuántas ha cancelado. */
     int cancelAllForActivity(Long activityId);
 

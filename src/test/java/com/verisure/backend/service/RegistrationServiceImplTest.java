@@ -20,6 +20,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.verisure.backend.dto.registration.CancelResult;
+import com.verisure.backend.dto.registration.RegistrationResponse;
 import com.verisure.backend.entity.Activity;
 import com.verisure.backend.entity.Registration;
 import com.verisure.backend.entity.User;
@@ -72,13 +73,13 @@ class RegistrationServiceImplTest {
     void accept_withFreeSpot_confirmsAndLeavesQueue() {
         when(spotService.hasFreeSpot(ACTIVITY_ID)).thenReturn(true);
 
-        Registration result = service.accept(REGISTRATION_ID, admin.getEmail());
+        RegistrationResponse result = service.accept(REGISTRATION_ID, admin.getEmail());
 
-        assertEquals(RegistrationStatus.CONFIRMED, result.getStatus());
-        assertTrue(result.isAccepted());
-        assertNull(result.getQueuePosition());
-        assertSame(admin, result.getDecidedBy());
-        assertNotNull(result.getDecidedAt());
+        assertEquals(RegistrationStatus.CONFIRMED, result.status());
+        assertTrue(result.accepted());
+        assertNull(result.queuePosition());
+        assertSame(admin, registration.getDecidedBy());
+        assertNotNull(registration.getDecidedAt());
         verify(spotService).reorderQueue(ACTIVITY_ID);
         verify(spotService).refreshFullStatus(ACTIVITY_ID);
     }
@@ -87,12 +88,12 @@ class RegistrationServiceImplTest {
     void accept_withoutFreeSpot_staysWaitlistedAcceptedAndNeverThrows() {
         when(spotService.hasFreeSpot(ACTIVITY_ID)).thenReturn(false);
 
-        Registration result = service.accept(REGISTRATION_ID, admin.getEmail());
+        RegistrationResponse result = service.accept(REGISTRATION_ID, admin.getEmail());
 
-        assertEquals(RegistrationStatus.WAITLISTED, result.getStatus());
-        assertTrue(result.isAccepted());
-        assertEquals(3, result.getQueuePosition(), "conserva su puesto en la cola");
-        assertSame(admin, result.getDecidedBy());
+        assertEquals(RegistrationStatus.WAITLISTED, result.status());
+        assertTrue(result.accepted());
+        assertEquals(3, result.queuePosition(), "conserva su puesto en la cola");
+        assertSame(admin, registration.getDecidedBy());
         verify(spotService, never()).reorderQueue(any());
         verify(spotService, never()).refreshFullStatus(any());
     }
@@ -108,12 +109,12 @@ class RegistrationServiceImplTest {
 
     @Test
     void reject_marksRejectedAndReordersQueue() {
-        Registration result = service.reject(REGISTRATION_ID, admin.getEmail());
+        RegistrationResponse result = service.reject(REGISTRATION_ID, admin.getEmail());
 
-        assertEquals(RegistrationStatus.REJECTED, result.getStatus());
-        assertFalse(result.isAccepted());
-        assertNull(result.getQueuePosition());
-        assertSame(admin, result.getDecidedBy());
+        assertEquals(RegistrationStatus.REJECTED, result.status());
+        assertFalse(result.accepted());
+        assertNull(result.queuePosition());
+        assertSame(admin, registration.getDecidedBy());
         verify(spotService).reorderQueue(ACTIVITY_ID);
     }
 

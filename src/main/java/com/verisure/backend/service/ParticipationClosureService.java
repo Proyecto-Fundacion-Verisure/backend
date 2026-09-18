@@ -14,7 +14,7 @@ import com.verisure.backend.dto.closure.CreateClosureRequest;
  * único {@code ClosureService} sería el único sitio del proyecto donde vuelve a
  * existir el «cierre» a secas que el glosario evita.
  *
- * <p><b>Este dominio no manda ningún correo.</b> Si algún día su controlador
+ * <p>Este dominio no manda ningún correo. Si algún día su controlador
  * necesita inyectar {@link NotificationService}, es señal de que se ha colado
  * un aviso donde no toca.
  *

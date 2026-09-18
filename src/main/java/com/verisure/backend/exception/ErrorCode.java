@@ -9,7 +9,7 @@ import org.springframework.http.HttpStatus;
  * Cada constante lleva su {@link HttpStatus}, de forma que
  * {@link GlobalExceptionHandler} necesita un solo manejador para todos.
  *
- * <p>Los errores genéricos de HTTP (401, 404, 413, 415, 500) <b>no</b> están
+ * <p>Los errores genéricos de HTTP (401, 404, 413, 415, 500) no están
  * aquí: no son códigos de negocio. Los traduce el manejador global, que
  * devuelve un {@link ApiError} con la misma forma.
  */

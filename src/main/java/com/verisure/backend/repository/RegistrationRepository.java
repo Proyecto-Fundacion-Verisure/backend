@@ -35,9 +35,9 @@ public interface RegistrationRepository extends JpaRepository<Registration, Long
      * rechazaron o ya estás dentro, no; si cancelaste, sí. La llama
      * {@code SpotService} antes de insertar.
      *
-     * <p><b>Esto no es una restricción de unicidad, y no puede serlo.</b> Puede
+     * <p>Esto no es una restricción de unicidad, y no puede serlo. Puede
      * haber varias filas de la misma persona y la misma actividad —la que
-     * canceló y la nueva—, así que la tabla <b>no</b> lleva constraint sobre
+     * canceló y la nueva—, así que la tabla no lleva constraint sobre
      * {@code (activity_id, user_id)}. Si alguien la añade, rompe la regla.
      */
     boolean existsByActivityIdAndUserIdAndStatusNot(
@@ -47,7 +47,7 @@ public interface RegistrationRepository extends JpaRepository<Registration, Long
      * Una inscripción con su actividad ya cargada.
      *
      * <p>La usan las tres operaciones que devuelven {@code RegistrationResponse},
-     * porque ese {@code record} lee el título de la actividad <b>fuera</b> de la
+     * porque ese {@code record} lee el título de la actividad fuera de la
      * transacción: con el proxy perezoso sin inicializar ahí revienta con
      * {@code LazyInitializationException}, y solo en los caminos que no tocan la
      * actividad por otro motivo.

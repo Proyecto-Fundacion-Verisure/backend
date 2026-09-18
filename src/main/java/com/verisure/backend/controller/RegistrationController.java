@@ -21,7 +21,6 @@ import com.verisure.backend.dto.registration.CancelResult;
 import com.verisure.backend.dto.registration.CreateRegistrationRequest;
 import com.verisure.backend.dto.registration.MyRegistrationItem;
 import com.verisure.backend.dto.registration.RegistrationResponse;
-import com.verisure.backend.entity.Registration;
 import com.verisure.backend.entity.enums.RegistrationStatus;
 import com.verisure.backend.repository.projection.RegistrationCounts;
 import com.verisure.backend.repository.projection.RegistrationRow;
@@ -40,8 +39,8 @@ import lombok.RequiredArgsConstructor;
  * avisa a nadie.
  *
  * <p>Las rutas de decisión cuelgan de {@code /api/registrations/} por contrato,
- * donde la cadena solo exige token, así que <b>el rol lo impone su
- * {@code @PreAuthorize}</b>: sin él un empleado aceptaría su propia inscripción.
+ * donde la cadena solo exige token, así que el rol lo impone su
+ * {@code @PreAuthorize}: sin él un empleado aceptaría su propia inscripción.
  *
  * <p>Dueña: BE3 · Tarea: B3-03.
  */
@@ -65,12 +64,10 @@ public class RegistrationController {
             @Valid @RequestBody CreateRegistrationRequest request,
             Authentication authentication) {
 
-        Registration registration = spotService.register(
+        RegistrationResponse body = spotService.register(
                 request.activityId(), authentication.getName());
 
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(RegistrationResponse.from(registration));
+        return ResponseEntity.status(HttpStatus.CREATED).body(body);
     }
 
     /** Tablero de administración: inscripciones con las horas del año de cada persona. */
@@ -100,7 +97,7 @@ public class RegistrationController {
      * Acepta una inscripción: la marca como apta.
      *
      * <p>Si hay hueco, la confirma; si no, se queda en cola con
-     * {@code accepted = true}. <b>Nunca falla por aforo.</b>
+     * {@code accepted = true}. Nunca falla por aforo.
      *
      * <p>El aviso sale después de que el servicio ha vuelto sin lanzar. Si
      * el servicio lanza, no se llega a la línea del correo.
@@ -111,15 +108,16 @@ public class RegistrationController {
             @PathVariable Long id,
             Authentication authentication) {
 
-        Registration registration = registrationService.accept(id, authentication.getName());
+        RegistrationResponse accepted = registrationService.accept(id, authentication.getName());
 
-        if (registration.getStatus() == RegistrationStatus.CONFIRMED) {
+        boolean confirmed = accepted.status() == RegistrationStatus.CONFIRMED;
+        if (confirmed) {
             notificationService.notifyRegistrationConfirmed(id);
         } else {
             notificationService.notifyRegistrationWaitlisted(id);
         }
 
-        return RegistrationResponse.from(registration);
+        return accepted;
     }
 
     /**
@@ -134,17 +132,17 @@ public class RegistrationController {
             @PathVariable Long id,
             Authentication authentication) {
 
-        Registration registration = registrationService.reject(id, authentication.getName());
+        RegistrationResponse rejected = registrationService.reject(id, authentication.getName());
 
         notificationService.notifyRegistrationRejected(id);
 
-        return RegistrationResponse.from(registration);
+        return rejected;
     }
 
     /**
      * Cancela una inscripción, la pida su dueña o la administradora.
      *
-     * <p>Una sola ruta para los dos roles y <b>no hay {@code DELETE}</b>: la
+     * <p>Una sola ruta para los dos roles y no hay {@code DELETE}: la
      * fila se queda en {@code CANCELLED} porque hace falta para la regla de no
      * repetir inscripción y para que el dashboard no pierda historia. Quién
      * puede hacer qué lo decide el servicio.

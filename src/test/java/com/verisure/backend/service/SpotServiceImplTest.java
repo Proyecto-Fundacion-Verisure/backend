@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 
+import com.verisure.backend.dto.registration.RegistrationResponse;
 import com.verisure.backend.entity.Activity;
 import com.verisure.backend.entity.Registration;
 import com.verisure.backend.entity.User;
@@ -90,13 +91,13 @@ class SpotServiceImplTest {
         when(registrationRepository.countByActivityIdAndStatus(ACTIVITY_ID, RegistrationStatus.WAITLISTED))
                 .thenReturn(3L);
 
-        Registration registration = service.register(ACTIVITY_ID, EMPLOYEE_EMAIL);
+        RegistrationResponse response = service.register(ACTIVITY_ID, EMPLOYEE_EMAIL);
 
-        assertEquals(RegistrationStatus.WAITLISTED, registration.getStatus());
-        assertFalse(registration.isAccepted());
-        assertEquals(4, registration.getQueuePosition());
-        assertEquals(employee, registration.getUser());
-        assertEquals(activity, registration.getActivity());
+        assertEquals(RegistrationStatus.WAITLISTED, response.status());
+        assertFalse(response.accepted());
+        assertEquals(4, response.queuePosition());
+        assertEquals(activity.getId(), response.activityId());
+        assertEquals(activity.getTitle(), response.activityTitle());
     }
 
     @Test
@@ -127,9 +128,9 @@ class SpotServiceImplTest {
     void register_onDeadlineDay_isStillAllowed() {
         spotInfo(2, 0, LocalDate.now());
 
-        Registration registration = service.register(ACTIVITY_ID, EMPLOYEE_EMAIL);
+        RegistrationResponse response = service.register(ACTIVITY_ID, EMPLOYEE_EMAIL);
 
-        assertEquals(RegistrationStatus.WAITLISTED, registration.getStatus());
+        assertEquals(RegistrationStatus.WAITLISTED, response.status());
     }
 
     @Test

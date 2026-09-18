@@ -28,10 +28,10 @@ import jakarta.servlet.http.HttpServletResponse;
  * {@code POST /api/auth/login}. Es el único sitio donde se comprueban las
  * credenciales y se emite un token.
  *
- * <p><b>Ojo con la clase que extiende.</b>
+ * <p>Ojo con la clase que extiende.
  * {@code UsernamePasswordAuthenticationFilter} viene preparada para formularios
  * HTML y lee {@code username} y {@code password} como parámetros de formulario.
- * El contrato manda <b>JSON</b> con {@code email} y {@code password}, así que
+ * El contrato manda JSON con {@code email} y {@code password}, así que
  * {@link #attemptAuthentication} está sobrescrito para deserializar el cuerpo. Sin
  * eso, el login recibiría credenciales nulas y fallaría siempre sin decir por qué.
  */
@@ -94,7 +94,7 @@ public class JWTAuthentication extends UsernamePasswordAuthenticationFilter {
     /**
      * Aquí aterrizan los tres códigos de estado de cuenta.
      *
-     * <p>Un fallo de credenciales devuelve <b>401 genérico</b>, sin distinguir si
+     * <p>Un fallo de credenciales devuelve 401 genérico, sin distinguir si
      * el correo existe: decir «ese correo no está registrado» permitiría averiguar
      * quién tiene cuenta probando direcciones.
      */

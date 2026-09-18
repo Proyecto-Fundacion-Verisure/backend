@@ -62,7 +62,7 @@ String dateRangeCode = ValidDateRange.class.getSimpleName();
         boolean dateRangeInvalid = ex.getBindingResult().getFieldErrors().stream()
                 .anyMatch(error -> error.getCodes() != null
                         && Arrays.asList(error.getCodes()).contains(dateRangeCode));
-        
+
 
         String code = dateRangeInvalid
                 ? ErrorCode.INVALID_DATE_RANGE.name()
@@ -99,7 +99,7 @@ String dateRangeCode = ValidDateRange.class.getSimpleName();
      * {@code ?status=LO_QUE_SEA} sobre un enum, o una letra donde va un número.
      *
      * <p>Sin esto lo recoge la red de seguridad de abajo y una errata en la
-     * barra de direcciones se devuelve como <b>500</b>, con la traza registrada
+     * barra de direcciones se devuelve como 500, con la traza registrada
      * como si el servidor estuviera roto. El parámetro viaja en {@code fields}
      * para que el frontend sepa cuál de ellos rechazar.
      */
@@ -154,7 +154,7 @@ String dateRangeCode = ValidDateRange.class.getSimpleName();
      * Una URL que no corresponde a ningún endpoint.
      *
      * <p>Sin esto la recoge la red de seguridad de abajo y frontend recibe un
-     * <b>500</b> por una simple errata en la ruta, con la traza registrada como
+     * 500 por una simple errata en la ruta, con la traza registrada como
      * si fuera un fallo del servidor.
      */
     @ExceptionHandler(NoResourceFoundException.class)
@@ -174,7 +174,7 @@ String dateRangeCode = ValidDateRange.class.getSimpleName();
     }
 
     /**
-     * Red de seguridad. Registra la traza pero <b>nunca</b> la devuelve:
+     * Red de seguridad. Registra la traza pero nunca la devuelve:
      * {@code server.error.include-stacktrace=never} ya está puesto.
      */
     @ExceptionHandler(Exception.class)

@@ -17,12 +17,12 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * Envío real del correo, fuera del hilo de la petición.
  *
- * <p><b>Está en un bean aparte a propósito.</b> {@code @Async} vive en un
+ * <p>Está en un bean aparte a propósito. {@code @Async} vive en un
  * <i>proxy</i> que Spring pone alrededor del bean, igual que
  * {@code @Transactional}. Si este método estuviera en
  * {@link NotificationServiceImpl} y se llamara desde otro método de esa misma
- * clase, la llamada no pasaría por el proxy y <b>la anotación se ignoraría sin
- * dar ningún error</b>: el correo volvería a enviarse en el hilo de la
+ * clase, la llamada no pasaría por el proxy y la anotación se ignoraría sin
+ * dar ningún error: el correo volvería a enviarse en el hilo de la
  * petición. Separarlo es lo que garantiza que el proxy se aplica.
  *
  * <p>El {@code try/catch} está aquí dentro porque una excepción en un método

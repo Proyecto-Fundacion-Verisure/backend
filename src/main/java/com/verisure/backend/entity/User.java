@@ -42,7 +42,7 @@ public class User {
 
     @Column(nullable = false, length = 60)
     private String password;
-    
+
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     private Role role;
@@ -57,7 +57,7 @@ public class User {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "partner_id", nullable = true, referencedColumnName = "id")
     private Partner partner;
-    
+
     @Column(nullable = false, length = 20)
     @Enumerated(EnumType.STRING)
     private UserStatus status;
@@ -87,7 +87,7 @@ public class User {
 
     @JsonIgnore
     @OneToMany(mappedBy = "decidedBy")
-    private List<Registration> decidedRegistrations; 
+    private List<Registration> decidedRegistrations;
 
     @JsonIgnore
 @OneToMany(mappedBy = "createdBy")
@@ -95,5 +95,5 @@ private List<Activity> activitiesCreated;
 
 @JsonIgnore
 @OneToMany(mappedBy = "user")
-private List<Favorite> favorites; 
-}   
+private List<Favorite> favorites;
+}

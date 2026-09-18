@@ -12,7 +12,7 @@ import jakarta.validation.ConstraintValidator;
 public class ValidDateRangeValidator
     implements ConstraintValidator<ValidDateRange, Object> {
 
-    @Override 
+    @Override
     public boolean isValid(Object value, ConstraintValidatorContext context) {
         LocalDate startDate;
         LocalDate endDate;
@@ -33,7 +33,7 @@ public class ValidDateRangeValidator
         if (startDate == null || endDate == null || registrationDeadline == null) {
             return true;
         }
-    
+
     context.disableDefaultConstraintViolation();
     boolean valid = true;
 

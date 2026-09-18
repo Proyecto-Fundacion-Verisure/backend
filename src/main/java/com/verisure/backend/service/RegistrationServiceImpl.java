@@ -48,7 +48,7 @@ public class RegistrationServiceImpl implements RegistrationService {
 
     @Override
     @Transactional
-    public Registration accept(Long registrationId, String adminEmail) {
+    public RegistrationResponse accept(Long registrationId, String adminEmail) {
         Registration registration = findRegistrationOrFail(registrationId);
         User admin = findUserOrFail(adminEmail);
 
@@ -65,12 +65,12 @@ public class RegistrationServiceImpl implements RegistrationService {
         }
         // sin hueco: se queda WAITLISTED con accepted = true, en su posición
 
-        return registration;
+        return RegistrationResponse.from(registration);
     }
 
     @Override
     @Transactional
-    public Registration reject(Long registrationId, String adminEmail) {
+    public RegistrationResponse reject(Long registrationId, String adminEmail) {
         Registration registration = findRegistrationOrFail(registrationId);
         User admin = findUserOrFail(adminEmail);
 
@@ -82,7 +82,7 @@ public class RegistrationServiceImpl implements RegistrationService {
         Long activityId = registration.getActivity().getId();
         spotService.reorderQueue(activityId);
 
-        return registration;
+        return RegistrationResponse.from(registration);
     }
 
     @Override
@@ -147,7 +147,7 @@ public class RegistrationServiceImpl implements RegistrationService {
         return registrationRepository.findMine(user.getId());
     }
 
-    /** Trae la actividad cargada porque el controlador la lee al responder. */
+    /** Trae la actividad cargada: la respuesta lleva su título. */
     private Registration findRegistrationOrFail(Long registrationId) {
         return registrationRepository.findByIdWithActivity(registrationId)
                 .orElseThrow(() -> NotFoundException.of("inscripción", registrationId));

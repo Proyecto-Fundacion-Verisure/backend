@@ -23,7 +23,7 @@ import lombok.RequiredArgsConstructor;
  * La cadena de seguridad, las rutas públicas y el reparto por rol.
  *
  * <p>Sin esta clase, Spring Boot aplica su cadena por defecto y protege
- * <b>todos</b> los endpoints con autenticación básica y una contraseña generada
+ * todos los endpoints con autenticación básica y una contraseña generada
  * en cada arranque: la aplicación levanta, pero frontend no puede llamar a nada.
  *
  * <p>La sesión es {@code STATELESS} y CSRF está desactivado. No es una dejadez:

@@ -33,7 +33,7 @@ import lombok.RequiredArgsConstructor;
  * {@code /api/org/**} al rol {@code PARTNER}, así que una empleada o la
  * administradora reciben 403 sin llegar hasta aquí.
  *
- * <p><b>Ningún método recibe un identificador de entidad.</b> Lo resuelve el
+ * <p>Ningún método recibe un identificador de entidad. Lo resuelve el
  * servicio desde el token; ver {@code PartnerResolver}.
  *
  * <p>Dueña: BE3 · Tareas: B2-13 y B2-14.

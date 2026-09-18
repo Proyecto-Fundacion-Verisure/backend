@@ -3,7 +3,7 @@ package com.verisure.backend.repository.projection;
 /**
  * Totales de participación de una actividad, para la pantalla de cierre.
  *
- * <p>Existe para que {@code ActivityClosureService} <b>no tenga que llamar</b> a
+ * <p>Existe para que {@code ActivityClosureService} no tenga que llamar a
  * {@code ParticipationClosureService}: los agregados se leen directamente del
  * repositorio del otro cierre, que es una dependencia de datos y no de dominio.
  *

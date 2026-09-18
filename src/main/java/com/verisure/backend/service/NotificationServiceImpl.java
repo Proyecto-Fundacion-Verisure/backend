@@ -14,10 +14,10 @@ import lombok.RequiredArgsConstructor;
  * <p>Combina las dos garantías que hacen falta:
  * <ul>
  *   <li>El envío real lo hace {@link MailDispatcher}, que es un bean aparte con
- *       {@code @Async}, así que <b>nunca bloquea la respuesta</b>.</li>
+ *       {@code @Async}, así que nunca bloquea la respuesta.</li>
  *   <li>Si hay una transacción abierta, el envío se difiere a
- *       {@code afterCommit()}, así que <b>el correo no sale si la operación se
- *       deshace</b> aunque alguien haya llamado al aviso desde dentro.</li>
+ *       {@code afterCommit()}, así que el correo no sale si la operación se
+ *       deshace aunque alguien haya llamado al aviso desde dentro.</li>
  * </ul>
  *
  * <p>El orden importa: la sincronización se registra en el hilo del llamante,
@@ -26,7 +26,7 @@ import lombok.RequiredArgsConstructor;
  * porque en el hilo asíncrono no hay ninguna transacción que sincronizar y el
  * correo saldría antes del commit.
  *
- * <p>El contenido se resuelve <b>antes</b> de diferir, y no dentro del
+ * <p>El contenido se resuelve antes de diferir, y no dentro del
  * {@code afterCommit()}: con {@code spring.jpa.open-in-view=false} allí ya no
  * hay sesión con la que leer.
  *

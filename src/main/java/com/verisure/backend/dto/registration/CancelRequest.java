@@ -3,7 +3,7 @@ package com.verisure.backend.dto.registration;
 /**
  * Cuerpo opcional de la cancelación.
  *
- * <p>El motivo <b>no se persiste</b>: queda en la traza del servicio. Ninguna
+ * <p>El motivo no se persiste: queda en la traza del servicio. Ninguna
  * pantalla ni consulta del proyecto lo lee, así que una columna sería un campo
  * muerto. El campo existe porque está en el contrato de API.
  *
