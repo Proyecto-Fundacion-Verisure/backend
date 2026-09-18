@@ -23,13 +23,13 @@ import lombok.RequiredArgsConstructor;
 /**
  * Cierre de actividad. Solo administración.
  *
- * <p><b>Este controlador orquesta el aviso</b>, que es la razón por la que
+ * <p>Este controlador orquesta el aviso, que es la razón por la que
  * inyecta {@link NotificationService}: el servicio hace su trabajo dentro de su
  * transacción y devuelve; si no ha lanzado, el controlador manda el correo. Así
  * una operación que se deshace no avisa a nadie. Ver la regla completa en
  * {@link NotificationService}.
  *
- * <p><b>Todas sus rutas cuelgan de {@code /api/admin/}</b>, y no de
+ * <p>Todas sus rutas cuelgan de {@code /api/admin/}, y no de
  * {@code /api/activities/}, para que la única regla de la cadena de seguridad que
  * necesiten sea la de {@code ADMIN}. Antes compartían prefijo con el catálogo, y
  * eso obliga a declarar excepciones que es fácil olvidar al añadir un endpoint.
@@ -69,7 +69,7 @@ public class ActivityClosureController {
      */
     @PatchMapping("/activities/{id}/closure/finalize")
     public ResponseEntity<ActivityClosureResponse> finalizeClosure(@PathVariable Long id) {
-        ActivityClosureResponse body = activityClosureService.finalizeClosure(id); // ya confirmó
+        ActivityClosureResponse body = activityClosureService.finalizeClosure(id);
         notificationService.notifyActivityClosed(id);
         return ResponseEntity.ok(body);
     }

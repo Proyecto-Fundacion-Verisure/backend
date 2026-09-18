@@ -30,14 +30,14 @@ import com.verisure.backend.service.CertificateReference;
 import lombok.RequiredArgsConstructor;
 
 /**
- * Siembra los <b>dos</b> closures: 7 de participación y 3 de actividad.
+ * Siembra los dos closures: 7 de participación y 3 de actividad.
  *
  * <p>Las horas declaradas se separan a propósito de las previstas —una por
  * encima y otra por debajo— porque lo que la pantalla de participationClosure tiene que
  * enseñar es justamente el contraste entre previsto y reportado. Si todas
  * cuadraran, esa pantalla no demostraría nada.
  *
- * <p><b>Cruce entre dominios.</b> Este seeder es de BE1 pero depende por
+ * <p>Cruce entre dominios. Este seeder es de BE1 pero depende por
  * completo de que {@link RegistrationSeeder} haya dejado inscripciones en
  * {@code CLOSED} y {@code PENDING_CLOSURE}. Sin ellas no hay nada que cerrar y
  * el dashboard sale vacío en la demo, sin ningún error que lo avise.

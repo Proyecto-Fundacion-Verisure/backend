@@ -13,11 +13,11 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import com.verisure.backend.entity.enums.Role;
 
 /**
- * Firma y valida los tokens. <b>No consulta la base de datos</b>: solo hace
+ * Firma y valida los tokens. No consulta la base de datos: solo hace
  * criptografía. De saber quién es la persona se encarga
  * {@link CustomAuthenticationManager}.
  *
- * <p>Usa <b>{@code java-jwt} de Auth0</b>, que es la librería que trae el
+ * <p>Usa {@code java-jwt} de Auth0, que es la librería que trae el
  * {@code pom.xml}. El runbook da los ejemplos con {@code jjwt}: ese código no
  * compila aquí.
  *

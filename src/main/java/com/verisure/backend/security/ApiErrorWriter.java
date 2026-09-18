@@ -16,8 +16,8 @@ import lombok.RequiredArgsConstructor;
 /**
  * Escribe un {@link ApiError} directamente en la respuesta.
  *
- * <p>Hace falta porque Spring Security resuelve sus errores <b>dentro de la
- * cadena de filtros</b>, antes del {@code DispatcherServlet}, así que
+ * <p>Hace falta porque Spring Security resuelve sus errores dentro de la
+ * cadena de filtros, antes del {@code DispatcherServlet}, así que
  * {@code GlobalExceptionHandler} —que es un {@code @RestControllerAdvice}— nunca
  * los ve. Sin esto, un 401 llegaría con el cuerpo por defecto de Spring y la
  * forma única de error que exige el contrato se rompería justo en el caso más

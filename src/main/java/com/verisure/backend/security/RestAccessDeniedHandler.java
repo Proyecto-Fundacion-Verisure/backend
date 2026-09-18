@@ -12,7 +12,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 
 /**
- * Responde <b>403</b> cuando la persona está identificada pero su rol no basta
+ * Responde 403 cuando la persona está identificada pero su rol no basta
  * para la ruta que ha pedido.
  *
  * <p>403 es «sé quién eres y no puedes». La distinción con el 401 es un criterio

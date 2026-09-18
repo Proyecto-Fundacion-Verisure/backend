@@ -3,7 +3,7 @@ package com.verisure.backend.service;
 /**
  * Avisos por correo del sistema. Sustituye a los eventos de Spring.
  *
- * <p><b>REGLA · el aviso se llama SIEMPRE fuera de la transacción.</b> Orquesta
+ * <p>REGLA · el aviso se llama SIEMPRE fuera de la transacción. Orquesta
  * quien llama al servicio transaccional: el controlador en los endpoints, y el
  * método {@code @Scheduled} en las tareas programadas —que por eso no llevan
  * {@code @Transactional}—. Llamar a estos métodos dentro de un método
@@ -39,7 +39,7 @@ public interface NotificationService {
 
     /**
      * Plaza liberada: quien estaba en cabeza de la cola ha ascendido.
-     * El identificador es el de <b>esa</b> inscripción, no el de la que se canceló.
+     * El identificador es el de esa inscripción, no el de la que se canceló.
      */
     void notifySpotReleased(Long registrationId);
 
@@ -75,7 +75,7 @@ public interface NotificationService {
      * Enlace de verificación de correo, con su caducidad. Lo llama B1-15 desde
      * {@code /api/auth/verify} y {@code /api/auth/resend-verification}.
      *
-     * <p>Es <b>el único que no puede fallar en silencio</b>: si no llega, la
+     * <p>Es el único que no puede fallar en silencio: si no llega, la
      * entidad se queda bloqueada sin saber por qué. El fallo se registra con
      * nivel de aviso, no de información.
      */

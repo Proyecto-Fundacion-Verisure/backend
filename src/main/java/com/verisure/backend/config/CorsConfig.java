@@ -14,10 +14,10 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
  *
  * <p>Dos líneas que parecen de relleno y no lo son:
  * <ul>
- *   <li><b>{@code OPTIONS}</b>: el navegador manda una comprobación previa antes
+ *   <li>{@code OPTIONS}: el navegador manda una comprobación previa antes
  *       de cualquier {@code POST} con cabecera {@code Authorization}. Si no está
  *       permitida, frontend ve un error de CORS que no dice nada útil.</li>
- *   <li><b>{@code Content-Disposition} expuesta</b>: sin ella, las descargas de
+ *   <li>{@code Content-Disposition} expuesta: sin ella, las descargas de
  *       CSV y PDF del dashboard llegan sin nombre de archivo.</li>
  * </ul>
  */

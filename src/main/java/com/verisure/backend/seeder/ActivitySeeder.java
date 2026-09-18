@@ -22,7 +22,7 @@ import lombok.RequiredArgsConstructor;
 
 /**
  * Siembra las 13 actividades: al menos tres por cada línea de acción, los
- * <b>siete</b> {@code ActivityStatus} representados y una devuelta a borrador
+ * siete {@code ActivityStatus} representados y una devuelta a borrador
  * con nota de revisión.
  *
  * <p>Los valores de {@code line} y {@code mode} no son opinables: frontend

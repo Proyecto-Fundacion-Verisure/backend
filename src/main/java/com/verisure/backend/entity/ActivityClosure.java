@@ -30,7 +30,7 @@ public class ActivityClosure {
     private Long id;
 
     @Column(name = "collaboration_rating")
-    private Integer collaborationRating;   
+    private Integer collaborationRating;
 
     @Column(name = "closing_notes", columnDefinition = "text")
     private String closingNotes;
@@ -43,8 +43,8 @@ public class ActivityClosure {
     private ActivityClosureStatus status;
 
     @Column(name = "closed_at")
-    private Instant closedAt;         
-    
+    private Instant closedAt;
+
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "activity_id", nullable = false, unique = true)
     private Activity activity;

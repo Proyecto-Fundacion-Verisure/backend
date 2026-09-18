@@ -5,7 +5,7 @@ import com.verisure.backend.dto.user.UserResponse;
 /**
  * Respuesta de un login correcto.
  *
- * <p>{@code expiresIn} va en <b>segundos</b>, no en milisegundos: es lo que
+ * <p>{@code expiresIn} va en segundos, no en milisegundos: es lo que
  * espera frontend y lo que dice el contrato.
  */
 public record AuthResponse(

@@ -7,9 +7,9 @@ import com.verisure.backend.entity.enums.ActivityStatus;
 /**
  * Lo que carga el formulario de edición de la administración.
  *
- * <p>Devuelve <b>todos</b> los campos que el formulario escribe, sin recuento de
+ * <p>Devuelve todos los campos que el formulario escribe, sin recuento de
  * plazas ni corazón: son cosas del catálogo, no del editor. Funciona con
- * <b>cualquier</b> estado, incluidos {@code DRAFT} y {@code CANCELLED}, porque
+ * cualquier estado, incluidos {@code DRAFT} y {@code CANCELLED}, porque
  * la administradora tiene que poder reabrir una actividad aunque no sea visible
  * en el catálogo. Es la diferencia con {@link ActivityDetailResponse}, que solo
  * sirve los estados visibles.

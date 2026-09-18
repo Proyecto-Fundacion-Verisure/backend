@@ -26,7 +26,7 @@ import lombok.extern.slf4j.Slf4j;
  * <p>El nombre del archivo lo genera el servidor — un UUID — y la extensión sale
  * del tipo de contenido, nunca del nombre que manda el cliente.
  *
- * <p>Este servicio <b>no valida tipo ni tamaño</b>: la validación de la evidencia
+ * <p>Este servicio no valida tipo ni tamaño: la validación de la evidencia
  * (PDF · JPG · PNG, máximo 10 MB) vive en el llamador,
  * {@code ParticipationClosureServiceImpl.storeEvidence} (B1-03).
  */

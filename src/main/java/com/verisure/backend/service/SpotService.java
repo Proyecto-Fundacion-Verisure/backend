@@ -1,6 +1,6 @@
 package com.verisure.backend.service;
 
-import com.verisure.backend.entity.Registration;
+import com.verisure.backend.dto.registration.RegistrationResponse;
 
 /**
  * Todo lo que toca plazas y cola de una actividad.
@@ -19,7 +19,7 @@ public interface SpotService {
      * <p>Recibe el correo y no la entidad porque el filtro de seguridad deja en el
      * contexto el correo del token, no un {@code UserDetail}.
      */
-    Registration register(Long activityId, String userEmail);
+    RegistrationResponse register(Long activityId, String userEmail);
 
     /** ¿Quedan plazas? Cupo total menos confirmadas; las de la cola no ocupan. */
     boolean hasFreeSpot(Long activityId);

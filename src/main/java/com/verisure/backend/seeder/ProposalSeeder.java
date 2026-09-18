@@ -27,10 +27,10 @@ import lombok.RequiredArgsConstructor;
  * es un endpoint público, así que una organización sin cuenta puede proponer. Es
  * el único dato que prueba ese camino.
  *
- * <p>Las dos {@code ACCEPTED} apuntan a actividades <b>distintas</b>, porque la
+ * <p>Las dos {@code ACCEPTED} apuntan a actividades distintas, porque la
  * relación con {@code Activity} es {@code @OneToOne}.
  *
- * <p>{@code scope} es el número de <b>personas beneficiarias</b> que alcanzaría la
+ * <p>{@code scope} es el número de personas beneficiarias que alcanzaría la
  * propuesta, no un ámbito geográfico. Va en paralelo a {@code estimatedVolunteers},
  * que cuenta a quienes participan.
  *

@@ -33,11 +33,11 @@ public interface ActivityClosureService {
     ActivityClosureResponse saveDraft(Long activityId, SaveActivityClosureRequest request);
 
     /**
-     * Cierra la actividad. <b>No se deshace.</b> Pasa el cierre a {@code CLOSED},
+     * Cierra la actividad. No se deshace. Pasa el cierre a {@code CLOSED},
      * sella {@code closedAt} y llama a
      * {@link RegistrationLifecycleService#closeAllForActivity(Long)}.
      *
-     * <p><b>No manda el correo:</b> avisa el controlador cuando este método ha
+     * <p>No manda el correo: avisa el controlador cuando este método ha
      * vuelto sin lanzar. Ver la regla en {@link NotificationService}.
      */
     ActivityClosureResponse finalizeClosure(Long activityId);

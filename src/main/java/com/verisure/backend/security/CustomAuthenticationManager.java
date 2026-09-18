@@ -18,7 +18,7 @@ import lombok.RequiredArgsConstructor;
  * Comprueba las credenciales del login contra la base de datos.
  *
  * <p>El orden de las dos comprobaciones —primero la contraseña, después el estado
- * de la cuenta— <b>es deliberado y es una medida de seguridad</b>. Si el estado se
+ * de la cuenta— es deliberado y es una medida de seguridad. Si el estado se
  * mirara antes, cualquiera podría probar correos al azar y averiguar cuáles están
  * registrados y en qué situación, sin conocer ninguna contraseña. Comprobando
  * primero la contraseña, esa información solo la ve quien ya ha demostrado ser esa

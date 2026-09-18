@@ -23,7 +23,7 @@ import lombok.RequiredArgsConstructor;
 /**
  * Cierre de participación: lo rellena el empleado, uno por inscripción.
  *
- * <p><b>Este controlador NO inyecta {@link com.verisure.backend.service.NotificationService}.</b>
+ * <p>Este controlador NO inyecta {@link com.verisure.backend.service.NotificationService}.
  * Este dominio no manda ningún correo. Si algún día hace falta, es señal de que
  * se ha colado un aviso donde no toca.
  *
@@ -58,7 +58,7 @@ public class ParticipationClosureController {
             @RequestPart(value = "evidence", required = false) MultipartFile evidence) {
 
         ClosureDetailResponse body = participationClosureService.submit(request, evidence);
-        
+
         return ResponseEntity.status(HttpStatus.CREATED).body(body);
     }
 

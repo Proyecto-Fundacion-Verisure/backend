@@ -126,7 +126,7 @@ public class MailContentFactory {
                 "Cuéntanos cómo fue", "mail/activity-finished");
     }
 
-    /** Cada destinatario recibe el enlace a <b>su</b> cierre, no a la actividad. */
+    /** Cada destinatario recibe el enlace a su cierre, no a la actividad. */
     public List<MailMessage> activityClosed(Long activityId) {
         List<RegistrationMailView> views = registrationRepository
                 .findMailViewsByActivityIdAndStatusIn(activityId, List.of(RegistrationStatus.CLOSED));

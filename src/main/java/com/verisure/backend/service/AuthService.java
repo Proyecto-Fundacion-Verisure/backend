@@ -66,7 +66,7 @@ public interface AuthService {
     Long resendVerification(String email);
 
     /**
-     * Cierra una sesión en el servidor. <b>No revoca el JWT</b>: un token es
+     * Cierra una sesión en el servidor. No revoca el JWT: un token es
      * sin estado y no hay fila que borrar; la caducidad de dos horas es la
      * política de revocación. El cierre real ocurre en el cliente, que descarta
      * el token. Aquí solo queda constancia en la traza.

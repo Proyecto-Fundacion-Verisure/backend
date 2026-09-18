@@ -24,11 +24,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import lombok.RequiredArgsConstructor;
 
 /**
- * Siembra las 19 personas, con los <b>tres</b> roles en un solo archivo.
+ * Siembra las 19 personas, con los tres roles en un solo archivo.
  *
  * <p>Conviene no confundir dos cosas que comparten nombre: {@code Partner} es la
- * <b>organización</b> colaboradora —una fila con su CIF—, y {@code Role.PARTNER}
- * es el <b>rol de la persona</b> que trabaja en ella y entra a la aplicación.
+ * organización colaboradora —una fila con su CIF—, y {@code Role.PARTNER}
+ * es el rol de la persona que trabaja en ella y entra a la aplicación.
  * {@code User.partner} es el puente entre las dos.
  *
  * <p>Orden 2 de siete: va después de {@link PartnerSeeder} porque las personas

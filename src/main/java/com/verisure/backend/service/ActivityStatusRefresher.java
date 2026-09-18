@@ -11,7 +11,7 @@ import lombok.RequiredArgsConstructor;
 /**
  * Encadena las dos transiciones y manda los avisos.
  *
- * <p><b>No lleva {@code @Transactional} a propósito:</b> orquesta, y la
+ * <p>No lleva {@code @Transactional} a propósito: orquesta, y la
  * transacción la abre el servicio al que llama. Así el correo de cada actividad
  * sale con su transacción ya confirmada.
  *

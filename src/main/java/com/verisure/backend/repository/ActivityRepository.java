@@ -183,7 +183,7 @@ public interface ActivityRepository extends JpaRepository<Activity, Long>{
             where a.status = com.verisure.backend.entity.enums.ActivityStatus.PENDING_APPROVAL
             """)
     Page<ActivitySummary> findPendingApproval(Pageable pageable);
-   /** 
+   /**
     * Una página del catálogo · {@code B2-07}.
      *
      * <p>La entidad va en {@code left join} y no implícita por {@code a.partner.name}:
