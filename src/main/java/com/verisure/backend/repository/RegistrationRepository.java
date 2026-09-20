@@ -80,6 +80,8 @@ public interface RegistrationRepository extends JpaRepository<Registration, Long
     @Query(value = """
             select new com.verisure.backend.repository.projection.RegistrationRow(
                 r.id,
+                r.activity.id,
+                r.activity.title,
                 r.user.fullName,
                 r.user.department,
                 cast(r.user.organization as string),
@@ -111,8 +113,10 @@ public interface RegistrationRepository extends JpaRepository<Registration, Long
             Pageable pageable);
 
     /**
-     * Confirmadas, en cola y sin revisar de una actividad, en una sola
-     * consulta · {@code B3-03}.
+     * Confirmadas, en cola y sin revisar en una sola consulta · {@code B3-03}.
+     *
+     * <p>Sin {@code activityId} cuenta todas las actividades: es lo que pinta
+     * el globo del menú y el tablero global.
      */
     @Query("""
             select new com.verisure.backend.repository.projection.RegistrationCounts(
@@ -124,9 +128,9 @@ public interface RegistrationRepository extends JpaRepository<Registration, Long
                                    and r.accepted = false
                                   then 1L else 0L end), 0L))
             from Registration r
-            where r.activity.id = :activityId
+            where (:activityId is null or r.activity.id = :activityId)
             """)
-    RegistrationCounts findCountsByActivityId(@Param("activityId") Long activityId);
+    RegistrationCounts findCounts(@Param("activityId") Long activityId);
 
     /**
      * «Mis voluntariados»: las inscripciones de una persona con el estado de su

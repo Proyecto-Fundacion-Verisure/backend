@@ -98,7 +98,7 @@ public class RegistrationServiceImpl implements RegistrationService {
     @Override
     @Transactional(readOnly = true)
     public RegistrationCounts getCounts(Long activityId) {
-        return registrationRepository.findCountsByActivityId(activityId);
+        return registrationRepository.findCounts(activityId);
     }
 
     @Override
