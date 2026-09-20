@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<!-- Cuenta de entidad rechazada · Dueña: BE3 · Tarea: B3-13. -->
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{mail/layout :: base(~{::#content})}">
+<body>
+<div id="content">
+    <h1 style="margin:0 0 16px; font-size:20px; color:#27272a;">No hemos podido activar tu cuenta</h1>
+    <p style="margin:0 0 12px;">Hola <span th:text="${userName}">nombre</span>,</p>
+    <p style="margin:0 0 12px;">Hemos revisado la solicitud de alta de tu entidad y no podemos activarla.</p>
+    <p style="margin:0 0 12px;">Si crees que se trata de un error, escríbenos y lo revisamos.</p>
+</div>
+</body>
+</html>

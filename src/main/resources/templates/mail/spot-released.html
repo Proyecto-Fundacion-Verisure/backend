@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<!-- Ascenso desde la cola · Dueña: BE3 · Tarea: B3-09. -->
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{mail/layout :: base(~{::#content})}">
+<body>
+<div id="content">
+    <h1 style="margin:0 0 16px; font-size:20px; color:#27272a;">Ha quedado una plaza libre y es tuya</h1>
+    <p style="margin:0 0 12px;">Hola <span th:text="${userName}">nombre</span>,</p>
+    <p style="margin:0 0 12px;">Alguien ha cancelado y has subido desde la lista de espera:</p>
+    <p style="margin:0 0 12px;"><strong th:text="${activityTitle}">actividad</strong>, del <span th:text="${startDate}">fecha</span> al <span th:text="${endDate}">fecha</span>.</p>
+    <p style="margin:0 0 12px;">Tu plaza ya está confirmada, no tienes que hacer nada más.</p>
+    <p style="margin:28px 0 0;">
+        <a th:href="${link}" href="#"
+           style="display:inline-block; padding:12px 24px; background-color:#ff6f61;
+                  color:#ffffff; text-decoration:none; border-radius:6px;
+                  font-weight:bold;">Ver mis voluntariados</a>
+    </p>
+</div>
+</body>
+</html>

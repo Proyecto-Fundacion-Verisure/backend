@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<!--
+  Base común de los trece correos: cabecera coral, logotipo y pie legal.
+  Cada plantilla solo aporta su cuerpo, con th:replace sobre este fragmento.
+  Dueña: BE3 · Tarea: B3-09.
+-->
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+</head>
+<body style="margin:0; padding:0; background-color:#f4f4f5;">
+<!-- Maquetado con tablas y estilos en línea: es lo único que respetan los clientes de correo. -->
+<table th:fragment="base(content)" role="presentation" width="100%" cellpadding="0" cellspacing="0"
+       style="margin:0; padding:24px 0; background-color:#f4f4f5;
+              font-family:Arial, Helvetica, sans-serif; color:#27272a;">
+    <tr>
+        <td align="center">
+            <table role="presentation" width="600" cellpadding="0" cellspacing="0"
+                   style="width:600px; max-width:100%; background-color:#ffffff;
+                          border-radius:8px; overflow:hidden;">
+                <tr>
+                    <td style="background-color:#ff6f61; padding:24px 32px;">
+                        <span style="font-size:20px; font-weight:bold; color:#ffffff;
+                                     letter-spacing:0.5px;">Fundación Verisure</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:32px; font-size:15px; line-height:1.6;">
+                        <div th:replace="${content}">El cuerpo de cada correo.</div>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:24px 32px; background-color:#fafafa; font-size:12px;
+                               line-height:1.5; color:#71717a;">
+                        Este mensaje es automático, no hace falta responder.<br>
+                        Fundación Verisure · Programa de voluntariado corporativo.
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+</body>
+</html>

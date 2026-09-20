@@ -1,5 +1,6 @@
 HELP.md
 target/
+/bin/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
@@ -32,3 +33,9 @@ build/
 ### VS Code ###
 .vscode/
 .env
+
+# Claude Code
+.claude/
+
+# Archivos subidos en local (evidencias de los cierres)
+/uploads/

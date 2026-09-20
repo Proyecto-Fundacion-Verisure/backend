@@ -1,0 +1,630 @@
+# Contrato de API · Voluntariado Fundación Verisure
+
+**Estado:** refleja la rama `dev` a 18 de septiembre de 2026.
+
+> Este documento es la **única** fuente del contrato entre backend y frontend. Rutas, DTO, códigos de estado y códigos de error se toman de aquí, no de las issues.
+>
+> **Si una pantalla necesita un campo que no está aquí, no se inventa:** se pide el cambio, se actualiza este documento y luego se implementa. Cualquier cambio se hace **por PR**, nunca en un mensaje de chat.
+
+---
+
+## 1 · Convenciones globales
+
+| | |
+|---|---|
+| Formato | JSON, nombres en **camelCase** siempre |
+| Autenticación | `Authorization: Bearer <jwt>` |
+| Caducidad del token | **2 horas** (`app.jwt.expiration-ms=7200000`). La caducidad **es** la política de revocación |
+| Cierre de sesión | `POST /api/auth/logout` responde 204 y solo deja traza. **No revoca el JWT.** El cliente limpia la sesión en el acto |
+| Paginación | `?page=&size=`, devuelve `Page<T>` de Spring Data |
+| Errores | Una única forma, `ApiError`, para **todos** los casos, incluidos los de validación por campo |
+| Fechas | ISO-8601. `LocalDate` para fechas de actividad, `Instant` para marcas de tiempo |
+| Enlaces de correo | Se forman con `app.base-url` + la ruta que entrega FE2. **Ninguna plantilla lleva un dominio fijo** |
+
+### Rutas que entrega frontend
+
+Backend no las inventa: las usa para construir los enlaces de los correos.
+
+| Ruta | Para qué |
+|---|---|
+| `/my-volunteering` | «Mis voluntariados» |
+| `/activities/{id}` | Detalle de actividad |
+| `/closures/{id}` | Detalle del cierre |
+
+---
+
+## 2 · Los ocho enumerados
+
+Viajan **literales** en el JSON. Frontend los mockea tal cual.
+
+| Enumerado | Valores |
+|---|---|
+| `Role` | `ADMIN` · `EMPLOYEE` · `PARTNER` |
+| `UserStatus` | `PENDING_VERIFICATION` · `PENDING_APPROVAL` · `ACTIVE` · `REJECTED` |
+| `Organization` | `VERISURE_ES` · `VERISURE_GROUP` · **nullable** para el rol de entidad |
+| `PartnerStatus` | `PENDING` · `ACTIVE` · `REJECTED` |
+| `ActivityStatus` | `DRAFT` · `PENDING_APPROVAL` · `PUBLISHED` · `FULL` · `IN_PROGRESS` · `FINISHED` · `CANCELLED` |
+| `RegistrationStatus` | `WAITLISTED` · `CONFIRMED` · `REJECTED` · `CANCELLED` · `PENDING_CLOSURE` · `CLOSED` |
+| `ActivityClosureStatus` | `DRAFT` · `CLOSED` |
+| `ProposalStatus` | `NEW` · `ACCEPTED` · `REJECTED` |
+
+Además, **`Registration.accepted` es un booleano** y **no** forma parte de `RegistrationStatus`. Marca que la administradora aceptó la solicitud; si no había hueco, la persona sigue en cola con `accepted = true`.
+
+### Dos avisos sobre los nombres
+
+> **La entidad `Partner` y el rol `PARTNER` son cosas distintas que comparten nombre.** `Partner` es la entidad colaboradora —una fila con su CIF—; `PARTNER` es el rol de las personas que trabajan en ella. Las rutas de ese rol son `/api/org/**`.
+>
+> **`ActivityStatus.DRAFT` y `ActivityClosureStatus.DRAFT` no son lo mismo.** El primero es una actividad que se está escribiendo; el segundo, un cierre a medio rellenar.
+
+### Quién escribe cada estado
+
+Ninguna transición existe si no hay una tarea que la escriba. Esta tabla es la que destapó que nadie ponía una actividad en `FINISHED`, y de ahí salió `B3-17`.
+
+| `ActivityStatus` | Quién lo escribe |
+|---|---|
+| `DRAFT` | La admin o la entidad, al guardar sin publicar |
+| `PENDING_APPROVAL` | La entidad, al enviar a revisión · `B2-14` |
+| `PUBLISHED` | La admin, al publicar o al aprobar · `B2-02` · `B2-15` |
+| `FULL` | `SpotService`, al cubrirse la última plaza · `B3-02` |
+| `IN_PROGRESS` | **Tarea programada**, al llegar `startDate` · `B3-17` |
+| `FINISHED` | **Tarea programada**, al pasar `endDate` · `B3-17` |
+| `CANCELLED` | La admin, al cancelar · `B2-05` |
+
+| `RegistrationStatus` | Quién lo escribe |
+|---|---|
+| `WAITLISTED` | `SpotService`, al solicitar plaza · `B3-02` |
+| `CONFIRMED` | La decisión de la admin, o `promoteFirstInQueue` · `B3-03` · `B3-05` |
+| `REJECTED` | La decisión de la admin · `B3-03` |
+| `CANCELLED` | La persona o la admin, `cancelAllForActivity`, y la **tarea programada** con la cola de una actividad que termina · `B3-06` · `B3-17` |
+| `PENDING_CLOSURE` | **Tarea programada**, al terminar la actividad · `B3-17` |
+| `CLOSED` | `closeAllForActivity`, que llama BE1 al finalizar el cierre · `B3-06` |
+
+---
+
+## 3 · Errores
+
+### La forma, única para todos los casos
+
+```java
+public record ApiError(
+        String code,
+        String message,
+        Instant timestamp,
+        String path,
+        Map<String, List<String>> fields) {}
+```
+
+```json
+{
+  "code": "VALIDATION_ERROR",
+  "message": "La solicitud no es válida",
+  "timestamp": "2026-09-02T10:14:03Z",
+  "path": "/api/auth/register",
+  "fields": {
+    "cif":  ["debe tener 9 caracteres", "solo admite letras y números"],
+    "name": ["no puede estar vacío"]
+  }
+}
+```
+
+`fields` es `null` salvo en `VALIDATION_ERROR`. Es un **mapa de listas** y no un mapa de cadenas porque un mismo campo puede incumplir dos validaciones a la vez —un CIF que falla `@Size` y `@Pattern`—, y con un solo mensaje por campo uno de los dos se pierde de forma no determinista.
+
+No lleva el código HTTP: ya viaja en la respuesta.
+
+### Los 18 códigos de dominio
+
+| Código | HTTP | Cuándo |
+|---|---:|---|
+| `VALIDATION_ERROR` | 400 | Bean Validation falló · trae `fields` |
+| `DEADLINE_PASSED` | 400 | Pasó la fecha límite de inscripción |
+| `ACTIVITY_NOT_FINISHED` | 400 | Intentas cerrar antes de que la actividad termine |
+| `INVALID_DATE_RANGE` | 400 | Fecha de fin anterior a la de inicio |
+| `NOT_OWNER` | 403 | Pides un recurso que no es tuyo |
+| `ACCOUNT_NOT_VERIFIED` | 403 | Falta confirmar el correo |
+| `ACCOUNT_PENDING_APPROVAL` | 403 | La Fundación aún no ha aprobado la cuenta |
+| `ACCOUNT_REJECTED` | 403 | La cuenta fue rechazada |
+| `ALREADY_REGISTERED` | 409 | Ya tienes una inscripción que no cancelaste tú |
+| `REGISTRATION_NOT_CONFIRMED` | 409 | Cierras una inscripción que no estaba confirmada |
+| `ACTIVITY_NOT_CLOSED` | 409 | Pides el certificado de una actividad sin cerrar |
+| `CLOSURE_ALREADY_CLOSED` | 409 | Corriges tu cierre con la actividad ya cerrada |
+| `ACTIVITY_FINISHED` | 409 | Editas una actividad ya finalizada |
+| `ACTIVITY_NOT_EDITABLE` | 409 | Ya está enviada a revisión o publicada |
+| `ACTIVITY_NOT_PENDING_APPROVAL` | 409 | Apruebas o devuelves algo que no está en revisión |
+| `CIF_ALREADY_REGISTERED` | 409 | Ese correo ya tiene cuenta en esa entidad |
+| `EMAIL_ALREADY_REGISTERED` | 409 | El correo ya está registrado, en cualquier cuenta |
+| `PROPOSAL_ALREADY_DECIDED` | 409 | La propuesta ya se aceptó o rechazó |
+| `VERIFICATION_EXPIRED` | 410 | El enlace del correo caducó |
+| `RATE_LIMIT_EXCEEDED` | 429 | Reservado para un límite por IP en las rutas públicas. **Hoy no se emite**: no hay rate limiting implementado |
+
+Los genéricos de HTTP —`UNAUTHORIZED` 401, `FORBIDDEN` 403, `NOT_FOUND` 404, `MALFORMED_REQUEST` 400, `METHOD_NOT_ALLOWED` 405, `PAYLOAD_TOO_LARGE` 413, `UNSUPPORTED_MEDIA_TYPE` 415, `INTERNAL_ERROR` 500— **no son códigos de dominio**, pero devuelven el mismo `ApiError`.
+
+> 🚫 **`ACTIVITY_FULL` no existe y no debe aparecer nunca.** Aceptar una inscripción no falla por aforo: con hueco confirma, sin hueco conserva la cola con `accepted = true`.
+>
+> 🚫 **`REPORT_ALREADY_SUBMITTED` tampoco.** El cierre de participación no tiene estados, así que no hay reenvío que rechazar. Estaba en un criterio de aceptación de #117 y queda enmendado.
+>
+> 🚫 Tampoco pueden aparecer `Enrollment`, `SeatService` ni `/api/enrollments`. Los nombres son `Registration` y `SpotService`.
+
+---
+
+## 4 · Las nueve firmas que cruzan dominios
+
+Existen desde el día 1 aunque devuelvan vacío: es lo que permite que las tres compilen contra ellas sin esperarse. **Ningún dominio escribe directamente transiciones de otro.**
+
+### Siete de lectura
+
+| Firma | Dónde vive | La escribe | La usa |
+|---|---|---|---|
+| `long countByActivityIdAndStatus(Long, RegistrationStatus)` | `RegistrationRepository` | BE3 | BE1, para los confirmados de la pantalla de cierre |
+| `List<Registration> findByActivityIdAndStatusOrderByQueuePosition(Long, RegistrationStatus)` | `RegistrationRepository` | BE3 | BE3 |
+| `List<DashboardClosedRow> findDashboardData(Integer year, String line)` | `ParticipationClosureRepository` | BE1 | BE1, agregados del dashboard, CSV y PDF |
+| `Optional<SpotInfo> findSpotInfo(Long activityId)` | `ActivityRepository` | BE2 | BE3, cupo, confirmadas y fecha límite sin tocar `Activity` |
+| `Optional<ParticipationClosure> findByRegistrationId(Long)` | `ParticipationClosureRepository` | BE1 | BE3, para saber si una inscripción ya tiene cierre antes de permitir la baja |
+| `List<Long> findFavoritedActivityIds(Long userId, List<Long> activityIds)` | `FavoriteRepository` | BE3 | BE2, el corazón del catálogo sin una consulta por fila |
+| `List<ActivitySpotCount> countOccupiedSpotsByActivityIds(List<Long> activityIds)` | `RegistrationRepository` | BE3 | BE2, plazas ocupadas del catálogo, del listado de administración y del rol entidad |
+
+> **Las dos últimas nacieron en `B2-07`.** El catálogo necesita el corazón y las plazas ocupadas de cada fila, y las dos cosas son de BE3. Preguntarlas fila a fila con `existsByActivityIdAndUserId` y `countByActivityIdAndStatus` convierte una página de veinte tarjetas en cuarenta consultas, así que las dos reciben los identificadores de la página entera y responden de una vez. **Solo se llaman si la página trae filas**: un `in ()` vacío revienta en algunos motores. `countOccupiedSpotsByActivityIds` **no devuelve las actividades sin ninguna plaza cubierta**, así que quien la consume pone cero por defecto.
+
+> **`findDashboardData` sustituye a `findClosedForDashboard`** (enmienda de `B1-07`). La firma original de BE3 devolvía `ClosedParticipationView` con cinco columnas; el dashboard necesitaba trece —identificadores de cierre, actividad, persona y entidad, modalidad y ubicación—, así que BE1 escribió `findDashboardData` → `DashboardClosedRow` y la original se retiró para no mantener dos consultas iguales. Vive en `ParticipationClosureRepository` porque las horas salen de `ParticipationClosure`, no de `Registration`; `DashboardClosedRow` es un `record`, así que necesita expresión de constructor.
+
+### Dos de escritura — las únicas del proyecto
+
+```java
+public interface RegistrationLifecycleService {
+
+    /** La llama BE2 al cancelar una actividad. Pasa a CANCELLED las inscripciones vivas. */
+    int cancelAllForActivity(Long activityId);
+
+    /** La llama BE1 al FINALIZAR el cierre. Pasa todas de PENDING_CLOSURE a CLOSED. */
+    int closeAllForActivity(Long activityId);
+}
+```
+
+Se invocan de forma **síncrona, dentro de la transacción que llama**.
+
+> **`closeRegistration(registrationId)` ya no existe.** Se cierra por actividad, porque la Fundación cierra una vez y arrastra todas sus participaciones.
+
+---
+
+## 5 · Avisos por correo
+
+No hay eventos de Spring. Toda la comunicación entre dominios pasa por `NotificationService`, para que quién avisa a quién se lea en el constructor.
+
+**Son trece métodos**, uno por aviso:
+
+| Método | Cuándo | Lo llama |
+|---|---|---|
+| `notifyRegistrationConfirmed` | Plaza confirmada | BE3 |
+| `notifyRegistrationWaitlisted` | Solicitud recibida, en cola | BE3 |
+| `notifyRegistrationRejected` | Inscripción rechazada, **sin motivo** | BE3 |
+| `notifySpotReleased` | Ascenso desde la cola | BE3 |
+| `notifyActivityCancelled` | Actividad cancelada | BE2 |
+| `notifyActivityFinished` | «Cuéntanos cómo fue» | `B3-17` |
+| `notifyActivityClosed` | Cerrada · lleva el enlace al certificado | BE1 |
+| `notifyActivitySubmittedForReview` | Una entidad envía a revisión | BE2 |
+| `notifyActivityApproved` | La Fundación aprueba | BE2 |
+| `notifyActivityReturned` | La Fundación devuelve · lleva el `reviewNote` | BE2 |
+| `notifyOrgAccountApproved` | Cuenta de entidad aprobada | BE1 |
+| `notifyOrgAccountRejected` | Cuenta de entidad rechazada | BE1 |
+| `notifyVerificationRequested` | Enlace de verificación · **el único que no puede fallar en silencio** | BE1 |
+
+### La regla que no se ve en ninguna firma
+
+**El aviso se llama SIEMPRE fuera de la transacción.** Orquesta quien llama al servicio transaccional: el controlador en los endpoints, y el método `@Scheduled` en las tareas programadas —que por eso **no llevan `@Transactional`**—.
+
+```java
+// El servicio hace su trabajo y NO avisa
+@Transactional
+public ActivityClosureResponse finalizeClosure(Long id) { ... }
+
+// El controlador avisa cuando el servicio ha vuelto sin lanzar
+var body = activityClosureService.finalizeClosure(id);
+notificationService.notifyActivityClosed(id);
+```
+
+Como red de seguridad, `NotificationServiceImpl` difiere el envío a `afterCommit()` si detecta una transacción abierta, y el envío real lo hace `MailDispatcher`, un bean aparte con `@Async`. **Es una protección, no un permiso para saltarse la regla.**
+
+> **Dos trampas de *proxy*, que no dan ningún error.** `@Transactional` y `@Async` viven en un *proxy* alrededor del bean: una llamada de un método a otro **de la misma clase** no pasa por él y la anotación **se ignora en silencio**. Por eso `MailDispatcher` es un bean separado, y por eso no vale partir un servicio en un método público sin `@Transactional` que llame a uno interno que sí la lleve.
+
+**Un caso que la regla no cubre sola:** cuando el destinatario nace dentro de la transacción y su identificador no está en la ruta. Es lo que pasa con `notifySpotReleased`, que va a quien ascendió de la cola. El servicio tiene que devolver ese dato:
+
+```java
+public record CancelResult(RegistrationResponse body, Long promotedRegistrationId) {}
+```
+
+---
+
+## 5 bis · Seguridad
+
+### Las cinco rutas públicas · sin token
+
+| Método | Ruta |
+|---|---|
+| POST | `/api/auth/login` |
+| POST | `/api/auth/register` |
+| GET | `/api/auth/verify?token=` |
+| POST | `/api/auth/resend-verification` |
+| POST | `/api/proposals` — formulario de la landing, sin cuenta |
+
+**Todo lo demás pide token**, incluido el catálogo de actividades. La única excepción es `GET /uploads/**`, que se explica en la tabla siguiente.
+
+### El reparto por rol
+
+| Prefijo | Quién |
+|---|---|
+| `/api/admin/**` · `/api/dashboard/**` | `ADMIN` |
+| `/api/org/**` | `PARTNER` |
+| `GET /api/activities`, `/api/activities/{id}` | `EMPLOYEE` · `ADMIN` |
+| `GET /uploads/**` | pública · el navegador abre la evidencia con un enlace directo, sin cabecera; la protección es el nombre UUID que genera el servidor |
+| El resto | cualquiera con token · quién puede lo decide el servicio |
+
+**Tres rutas sirven a dos roles**, así que la cadena solo exige token y la propiedad la comprueba el servicio devolviendo `NOT_OWNER`: `PATCH /api/registrations/{id}/cancel`, `GET /api/closures/{id}` y `GET /api/closures/{id}/certificate`.
+
+### El token
+
+- `Authorization: Bearer <jwt>`, caducidad de **2 horas**.
+- Lleva dentro el correo y el rol, así que el servidor no consulta la base de datos en cada petición. La contrapartida: un cambio de rol o un rechazo de cuenta **no tienen efecto hasta que el token caduca**.
+- **401 es «no sé quién eres»; 403 es «sé quién eres y no puedes».** Los dos devuelven `ApiError`.
+
+### Errores del login
+
+| Situación | Respuesta |
+|---|---|
+| Contraseña incorrecta **o correo inexistente** | **401** `UNAUTHORIZED`, con el mismo mensaje en ambos casos |
+| Cuenta sin verificar | **403** `ACCOUNT_NOT_VERIFIED` |
+| Cuenta pendiente de aprobación | **403** `ACCOUNT_PENDING_APPROVAL` |
+| Cuenta rechazada | **403** `ACCOUNT_REJECTED` |
+
+El mensaje idéntico para credenciales incorrectas y correo inexistente es deliberado: decir «ese correo no está registrado» permitiría averiguar quién tiene cuenta probando direcciones. El estado de la cuenta solo se revela **después** de acertar la contraseña.
+
+---
+
+## 6 · Endpoints
+
+53 endpoints en once bloques. **51 están implementados**; los dos que faltan —`POST /api/proposals` y `GET /api/org/dashboard`— están marcados en su bloque y el frontend los sirve desde un mock.
+
+### 6.1 · Autenticación
+
+| Método | Ruta | Rol | Recibe | Devuelve | Errores |
+|---|---|---|---|---|---|
+| POST | `/api/auth/login` | público | `LoginRequest { email, password }` | 200 `AuthResponse` | 401 genérico · 403 `ACCOUNT_NOT_VERIFIED` / `ACCOUNT_PENDING_APPROVAL` / `ACCOUNT_REJECTED` |
+| POST | `/api/auth/logout` | autenticado | — | **204** · solo traza | — |
+| GET | `/api/auth/me` | autenticado | — | 200 `UserResponse` | 401 |
+| POST | `/api/auth/register` | público | `RegisterPartnerRequest` | **201** | 400 `VALIDATION_ERROR` · 409 `CIF_ALREADY_REGISTERED` / `EMAIL_ALREADY_REGISTERED` |
+| GET | `/api/auth/verify?token=` | público | token | 200 | 410 `VERIFICATION_EXPIRED` |
+| POST | `/api/auth/resend-verification` | público | `{ email }` | **204** | — · no enumera correos: responde 204 exista o no la cuenta |
+
+```
+AuthResponse { accessToken, tokenType: "Bearer", expiresIn: 7200, user: UserResponse }
+UserResponse { id, name, email, role, department?, organization? }
+```
+
+`organization` es nullable: quien tiene rol de entidad no pertenece ni a Verisure España ni a Verisure Grupo.
+
+**Los dos 409 del registro no son el mismo error y no se pintan en el mismo sitio.** `CIF_ALREADY_REGISTERED` es «ese correo ya tiene cuenta *en esa entidad*», y sale cuando el CIF ya existe y la persona ya figura en ella; `EMAIL_ALREADY_REGISTERED` es «ese correo ya está registrado» en cualquier cuenta del sistema. Los dos apuntan al campo del correo, pero el primero solo tiene sentido leído junto al CIF. Que un CIF ya exista **no** es un error por sí solo: si la entidad está dada de alta y el correo es nuevo, el registro se acepta y la cuenta se cuelga de la entidad que ya había, sin duplicarla.
+
+### 6.2 · Actividades · catálogo
+
+| Método | Ruta | Rol | Recibe | Devuelve | Errores |
+|---|---|---|---|---|---|
+| GET | `/api/activities` | EMPLOYEE · ADMIN | `line`, `mode`, `from`, `to`, `page`, `size` | 200 `Page<ActivityCardResponse>` | 403 |
+| GET | `/api/activities/{id}` | EMPLOYEE · ADMIN | — | 200 `ActivityDetailResponse` | 403 · 404 |
+
+`GET /api/activities/{id}` es visible solo en `PUBLISHED`, `FULL`, `IN_PROGRESS` y `FINISHED`. En cualquier otro estado devuelve 404, no 403: quien no debe verla no debe ni saber que existe.
+
+**El catálogo no es público.** Pide token de `EMPLOYEE` o `ADMIN`. Una entidad colaboradora recibe **403**: lo suyo lo ve en `/api/org/activities`. La landing pública no lo necesita, porque sus cifras y líneas de acción son contenido estático.
+
+**Los filtros de la lista.** `line`, `mode`, `from` y `to` son opcionales y se combinan con Y: los que no llegan no filtran nada. `from` y `to` acotan la **fecha de inicio**, extremos incluidos. La lista muestra los mismos cuatro estados visibles que la ficha.
+
+**Los valores de `line` y `mode`.** No son enumerados en la base —las dos columnas son texto—, pero el conjunto es cerrado y frontend filtra por él, así que viajan siempre así:
+
+| Campo | Valores |
+|---|---|
+| `line` | `desoledad` · `educar` · `acoso` · `medioambiente` |
+| `mode` | `PRESENCIAL` · `ONLINE` · `MIXTO` |
+
+Las líneas en **minúsculas y sin separador**, los modos en **mayúsculas**. Es lo que siembran `ActivitySeeder` y `ProposalSeeder`, y lo que hay en la columna `line` de las doce actividades. Escribirlo aquí es lo que faltaba: el frontend fijó `medio_ambiente` con guion bajo, y el filtro «Medio ambiente» no devolvía nada contra el backend real sin que ninguna de las dos partes estuviera equivocada, porque el contrato no lo decía. Las **etiquetas visibles** («Medio ambiente») no son el valor y no se tocan.
+
+```
+ActivityCardResponse {
+  id, title, partnerName, line, mode, location,
+  startDate, endDate, hours,
+  spots, occupiedSpots,
+  status, favoritedByMe
+}
+
+ActivityDetailResponse {
+  ...todo lo de la tarjeta, y además:
+  description, registrationDeadline
+}
+```
+
+- **`occupiedSpots`** es quien tiene plaza: las inscripciones `CONFIRMED`, `PENDING_CLOSURE` y `CLOSED`. No es una columna de `Activity`: se cuenta. Las tres cuentan porque al terminar la actividad las confirmadas pasan a los otros dos estados, y contando solo `CONFIRMED` toda actividad terminada saldría con cero plazas ocupadas. Las de la cola no ocupan. Leído al lado de `spots` dice solo que las plazas libres son la resta. El frontend lo pinta hoy como `registeredCount` y tiene que renombrarlo.
+- **`favoritedByMe`** es un booleano y **no hay `favoriteCount`** ni en la tarjeta ni en la ficha. El recuento solo se sirve a la administradora y al dashboard: enseñar «3 me gusta» hace parecer poco interesante una actividad y condiciona a quien la mira.
+- Para `ADMIN`, `favoritedByMe` sale siempre `false`. La administradora no tiene corazón en el catálogo, así que es información correcta y no un caso aparte.
+- **`registrationDeadline` va solo en la ficha**: es la fecha que decide si el botón de apuntarse sigue vivo, y esa decisión se toma con la actividad abierta.
+- `description` no viaja en la tarjeta. En una rejilla no se lee.
+
+### 6.3 · Actividades · administración
+
+| Método | Ruta | Rol | Recibe | Devuelve | Errores |
+|---|---|---|---|---|---|
+| GET | `/api/admin/activities` | ADMIN | `status`, `page` | 200 `Page<ActivitySummary>` | 403 |
+| POST | `/api/admin/activities` | ADMIN | `CreateActivityRequest` | **201** `ActivityResponse` | 400 `INVALID_DATE_RANGE` |
+| GET | `/api/admin/activities/{id}` | ADMIN | — | 200 `ActivityFormResponse` | 403 · 404 |
+| PUT | `/api/admin/activities/{id}` | ADMIN | `UpdateActivityRequest` | 200 `ActivityResponse` | 409 `ACTIVITY_FINISHED` |
+| PATCH | `/api/admin/activities/{id}/publish` | ADMIN | — | 200 `ActivityResponse` | 409 `ACTIVITY_NOT_EDITABLE` |
+| PATCH | `/api/admin/activities/{id}/cancel` | ADMIN | — | **204** | 403 · 404 |
+| GET | `/api/admin/activities/pending` | ADMIN | `page` | 200 `Page<ActivitySummary>` | 403 |
+| PATCH | `/api/admin/activities/{id}/approve` | ADMIN | — | 200 `ActivityResponse` | 409 `ACTIVITY_NOT_PENDING_APPROVAL` |
+| PATCH | `/api/admin/activities/{id}/return` | ADMIN | `ReturnActivityRequest { note }` | 200 `ActivityResponse` | 400 · 409 `ACTIVITY_NOT_PENDING_APPROVAL` |
+| POST | `/api/admin/activities/refresh-status` | ADMIN | — | 200 `RefreshStatusResponse` | 401 · 403 |
+
+```
+ActivitySummary { id, title, partnerName, status, startDate, endDate, spots, favoriteCount }
+```
+
+- **Los dos listados comparten fila y se ordenan al revés.** El general va por `startDate` **descendente** —lo que se viene a tocar aquí es lo próximo, no lo del año pasado— y la cola de revisión por `startDate` **ascendente**, porque eso sí es una cola: lo que lleva más esperando se atiende antes. El `status` del listado general es **opcional**: sin él salen todos los estados.
+
+- **`favoriteCount` sí llega en estas dos rutas**, y no en el catálogo. Es el mismo criterio de siempre: el recuento es información de gestión, y enseñárselo a quien decide si apuntarse condiciona la decisión. Una actividad sin favoritos sale con `0`, no desaparece.
+
+- `GET /api/admin/activities/{id}` admite **cualquier** estado, incluidos `DRAFT` y `CANCELLED`. Es la diferencia con el detalle del catálogo, que solo muestra los estados visibles.
+
+- **`approve` limpia `reviewNote`**: el comentario con el que se devolvió antes una actividad no sobrevive a la aprobación, así que el panel de la entidad deja de enseñarlo.
+
+- La portada no la sube el backend: es una imagen por defecto por línea (`desoledad` · `educar` · `acoso` · `medioambiente`) que resuelve el frontend. Por eso ni `Activity` ni los DTO de actividad tienen `imageUrl`.
+- `approve` y `return` son para actividades **propuestas por una entidad**. Los cierres **no** se devuelven.
+- `cancel` pasa a `CANCELLED` las inscripciones vivas y avisa por correo a cada una. Tras cancelar, frontend vuelve a consultar actividad e inscripciones.
+
+```
+RefreshStatusResponse { started, finished }
+```
+
+`POST /api/admin/activities/refresh-status` dispara a mano el paso de estados por
+fecha que la tarea programada hace de madrugada: `PUBLISHED` · `FULL` →
+`IN_PROGRESS` al llegar `startDate`, e `IN_PROGRESS` → `FINISHED` al pasar
+`endDate`. Es **idempotente**: llamarlo dos veces seguidas devuelve ceros y no
+reenvía ningún correo.
+
+**Frontend no lo necesita para ninguna pantalla.** Existe para no depender de
+esperar a medianoche al probar el ciclo de cierre o al enseñar la demo. Si se
+quiere, encaja como botón de mantenimiento en el panel de administración.
+
+### 6.4 · Propuestas
+
+| Método | Ruta | Rol | Recibe | Devuelve | Errores |
+|---|---|---|---|---|---|
+| POST | `/api/proposals` | **público** | `CreateProposalRequest` | **201** | 400 · ❌ **no implementado** |
+| GET | `/api/admin/proposals` | ADMIN | `status`, `page` | 200 `Page<ProposalRow>` | 403 |
+| GET | `/api/admin/proposals/{id}` | ADMIN | — | 200 `ProposalDetailResponse` | 403 · 404 |
+| POST | `/api/admin/proposals/{id}/accept` | ADMIN | — | **201** `ActivityResponse` | 409 `PROPOSAL_ALREADY_DECIDED` |
+| PATCH | `/api/admin/proposals/{id}/reject` | ADMIN | — | **204** | 409 `PROPOSAL_ALREADY_DECIDED` |
+
+Aceptar devuelve **201** y no 200 porque crea una actividad nueva.
+
+> ❌ **`POST /api/proposals` no tiene controlador.** La cadena de seguridad lo abre sin token, pero la ruta responde 404. El formulario público de la landing sigue en mock en el frontend (`proposalsApi.js`). Cuando se implemente, `Proposal` ya admite `partner` nulo con los datos de contacto en la propia fila, así que el modelo no cambia.
+
+```
+ProposalRow {
+  id, partnerName, suggestedLine, estimatedVolunteers,
+  scope, status, createdAt, activityId
+}
+
+ProposalDetailResponse {
+  ...todo lo de la fila, y además:
+  description, contactName, email, phone, consentAt
+}
+```
+
+- **`partnerName` y los tres datos de contacto son nulables.** `POST /api/proposals` es público, así que una organización sin cuenta puede proponer y la propuesta se queda sin entidad detrás. La bandeja tiene que pintar esa fila igual, con los huecos vacíos.
+- **`activityId` es nulable** y solo tiene valor en las `ACCEPTED`: es lo que el frontend necesita para el botón «Ver actividad».
+- `scope` son **personas beneficiarias**, no ámbito geográfico. Va en paralelo a `estimatedVolunteers`, que cuenta a quienes participan.
+- **Tres estados y nada más.** Una propuesta nace `NEW` y ahí se queda hasta que la administradora decide: no hay estado «leída», porque abrirla no aporta información que nadie vaya a usar.
+
+**Qué precarga `accept`.** `Proposal` no tiene título, ni fechas, ni horas, y en `Activity` esos campos son obligatorios, así que solo se pueden precargar cuatro cosas: `description`, `suggestedLine` → `line`, `estimatedVolunteers` → `spots` y la entidad. El resto se rellena con marcadores —título derivado del nombre de la entidad, fechas a partir de hoy, una hora— y la actividad nace en `DRAFT`, que no es visible en ningún catálogo, para que la administradora la complete con `PUT /api/admin/activities/{id}` antes de publicarla.
+
+### 6.5 · Inscripciones
+
+| Método | Ruta | Rol | Recibe | Devuelve | Errores |
+|---|---|---|---|---|---|
+| POST | `/api/registrations` | EMPLOYEE | `{ activityId }` | **201** `RegistrationResponse` | 400 `DEADLINE_PASSED` · 409 `ALREADY_REGISTERED` |
+| GET | `/api/registrations/me` | EMPLOYEE | — | 200 `List<MyRegistrationItem>` | 401 |
+| GET | `/api/admin/registrations` | ADMIN | `activityId`, `status`, `page` | 200 `Page<RegistrationRow>` | 403 |
+| GET | `/api/admin/registrations/counts` | ADMIN | `activityId` **obligatorio** | 200 `RegistrationCounts` | 403 |
+| PATCH | `/api/registrations/{id}/accept` | ADMIN | — | 200 `RegistrationResponse` | 404 |
+| PATCH | `/api/registrations/{id}/reject` | ADMIN | — **sin motivo** | 200 `RegistrationResponse` | 404 |
+| PATCH | `/api/registrations/{id}/cancel` | EMPLOYEE **o** ADMIN | `CancelRequest { reason? }` | 200 `RegistrationResponse` | 403 `NOT_OWNER` · 404 |
+
+```
+RegistrationRow {
+  registrationId,
+  userName, department, organization,
+  status, accepted, queuePosition?,
+  yearHours,
+  decidedAt?, createdAt
+}
+
+RegistrationCounts { confirmed, waitlisted, unreviewed }
+```
+
+**Los contadores van en su propia ruta y no dentro del tablero.** La respuesta
+de `/api/admin/registrations` es el `Page<T>` de Spring Data, y ahí no caben tres
+cifras que además son de toda la actividad y no de la página.
+
+- `yearHours` son las horas de esa persona en el **año en curso**, sumadas sobre
+  sus participaciones `CLOSED`. Misma definición que el dashboard de la Fundación.
+- `unreviewed` son las inscripciones **en cola que nadie ha decidido todavía**
+  (`WAITLISTED` con `accepted = false`). Una rechazada no cuenta: también tiene
+  `accepted = false`, pero sí está revisada.
+
+```
+MyRegistrationItem {
+  registrationId,
+  activity { id, title, partner, startDate, endDate, hours },
+  status, accepted,
+  queuePosition?,
+  closureId?,
+  activityClosed
+}
+```
+
+**`accepted` solo dice algo cuando el estado es `WAITLISTED`**, y ahí separa dos
+esperas que sin él son indistinguibles: quien sigue pendiente de que administración
+la revise (`accepted = false`) y quien ya pasó por administración y está en cola
+porque no había hueco (`accepted = true`). Es la misma semántica que en
+`RegistrationRow`, y es justo lo que quiere saber quien aguarda plaza.
+
+**`closureId` y `activityClosed`.** Como el cierre de participación no tiene estados, el booleano es lo único que permite decidir qué botón pintar:
+
+| `closureId` | `activityClosed` | Botón en «Mis voluntariados» |
+|---|---|---|
+| `null` | `false` | «Cerrar tu participación» |
+| tiene valor | `false` | «Cierre enviado» · solo lectura |
+| tiene valor | `true` | «Descargar certificado» |
+
+**`queuePosition` solo viaja mientras la inscripción está en cola.** Al confirmar,
+rechazar o cancelar pasa a `null`, y la cola se renumera a 1, 2, 3… sin huecos,
+así que el número que ve el empleado siempre es su puesto real.
+
+**Y cuando la actividad termina, quien siguiera en cola pasa a `CANCELLED`.** No
+la canceló nadie: la actividad acabó sin que le llegara a tocar plaza. Sin esa
+transición, «Mis voluntariados» seguiría enseñando «en cola» de algo que ya pasó.
+
+- **Cancelar es un único endpoint para los dos roles.**
+- Rechazar **no admite motivo**, por contrato.
+- Tras cancelar, frontend vuelve a consultar tablero y cola para ver las promociones.
+
+### 6.6 · Favoritos
+
+| Método | Ruta | Rol | Recibe | Devuelve | Errores |
+|---|---|---|---|---|---|
+| POST | `/api/favorites` | EMPLOYEE | `FavoriteRequest { activityId }` | **201** | 404 |
+| DELETE | `/api/favorites/{activityId}` | EMPLOYEE | — | **204** | 404 |
+
+Restricción única `(activity_id, user_id)`.
+
+### 6.7 · Cierre de participación · lo rellena el empleado
+
+| Método | Ruta | Rol | Recibe | Devuelve | Errores |
+|---|---|---|---|---|---|
+| POST | `/api/closures` | EMPLOYEE | multipart: parte `request` (JSON) + parte opcional `evidence` | **201** `ClosureDetailResponse` | 400 `ACTIVITY_NOT_FINISHED` · 409 `REGISTRATION_NOT_CONFIRMED` / `CLOSURE_ALREADY_CLOSED` · 413 · 415 |
+| GET | `/api/closures/{id}` | ADMIN o propietaria | — | 200 `ClosureDetailResponse` | 403 `NOT_OWNER` · 404 |
+| GET | `/api/closures/{id}/certificate` | propietaria | — | 200 `CertificateResponse` | 409 `ACTIVITY_NOT_CLOSED` · 403 `NOT_OWNER` |
+
+```
+CreateClosureRequest { registrationId, actualHours, rating (1..5), comment?, evidenceConsent }
+```
+
+- `registrationId` va **en el cuerpo**, no en la ruta.
+- La evidencia acepta **PDF, JPG y PNG, máximo 10 MB**. Si hay archivo, `evidenceConsent` debe ser `true`.
+- `evidenceUrl` es una **URL absoluta al backend** (`http://<host>:8080/uploads/evidencias/<uuid>.<ext>`), lista para un `href` o un `src`. Antes era relativa y el navegador la resolvía contra el frontend.
+- **Solo puede existir un cierre por inscripción.** El identificador de ruta es siempre `closureId`.
+- **No hay estados ni horas validadas.** Las horas que declara el empleado son las definitivas: nadie las corrige. Si a administración no le cuadran, lo escribe en `closingNotes` del cierre de actividad. Por eso no existe ningún endpoint de validar ni de devolver un cierre.
+
+### 6.8 · Cierre de actividad · lo rellena la Fundación
+
+| Método | Ruta | Rol | Recibe | Devuelve | Errores |
+|---|---|---|---|---|---|
+| GET | `/api/admin/activities/pending-closure` | ADMIN | `page` | 200 `Page<ActivityClosureRow>` | 403 |
+| GET | `/api/admin/activities/{id}/closure` | ADMIN | — | 200 `ActivityClosureResponse` · borrador + agregados | 403 · 404 |
+| PUT | `/api/admin/activities/{id}/closure` | ADMIN | `SaveActivityClosureRequest` | 200 `ActivityClosureResponse` | 409 `CLOSURE_ALREADY_CLOSED` |
+| PATCH | `/api/admin/activities/{id}/closure/finalize` | ADMIN | — | 200 `ActivityClosureResponse` | 409 `CLOSURE_ALREADY_CLOSED` |
+
+```
+ActivityClosureRow { activityId, title, partnerName, line, startDate, endDate, hours }
+```
+
+`partnerName` es nulable: una actividad que publica la Fundación por su cuenta no tiene entidad detrás y no puede quedarse fuera de la cola por eso.
+
+```
+SaveActivityClosureRequest { collaborationRating (1..5)?, closingNotes?, lessonsLearned? }
+ActivityClosureResponse  { activityId, collaborationRating, closingNotes, lessonsLearned,
+                           status, closedAt,
+                           expectedHours, reportedHours,
+                           confirmedVolunteers, closedParticipations, evidenceCount }
+```
+
+- **La bandeja lista actividades, no cierres individuales.** La administradora no revisa doce formularios: mira los totales —previsto frente a reportado— y cierra **una vez**, lo que arrastra todas las participaciones a `CLOSED`.
+- **`finalize` no se deshace.**
+- `expectedHours` es `activity.hours × confirmedVolunteers`; `reportedHours`, `closedParticipations` y `evidenceCount` salen de una proyección agregada sobre los cierres de participación.
+- `confirmedVolunteers` cuenta `CONFIRMED`, `PENDING_CLOSURE` y `CLOSED`: la misma definición que `occupiedSpots` en el catálogo y en `/api/org/**`. Al terminar la actividad las confirmadas pasan a `PENDING_CLOSURE`, así que contar solo `CONFIRMED` daría cero en toda actividad cerrable.
+
+### 6.9 · Rol de entidad · `/api/org/**`
+
+| Método | Ruta | Rol | Recibe | Devuelve | Errores |
+|---|---|---|---|---|---|
+| GET | `/api/org/activities` | PARTNER | `status`, `page` | 200 `Page<OrgActivityRow>` | 403 |
+| POST | `/api/org/activities` | PARTNER | `CreateActivityRequest` | **201** `OrgActivityRow` | 400 |
+| PUT | `/api/org/activities/{id}` | PARTNER | `CreateActivityRequest` | 200 `OrgActivityRow` | 409 `ACTIVITY_NOT_EDITABLE` · 403 `NOT_OWNER` |
+| PATCH | `/api/org/activities/{id}/submit` | PARTNER | — | 200 `OrgActivityRow` | 409 `ACTIVITY_NOT_EDITABLE` |
+| GET | `/api/org/proposals` | PARTNER | `page` | 200 `Page<OrgProposalRow>` | 403 |
+| POST | `/api/org/proposals` | PARTNER | `CreateOrgProposalRequest` | **201** `OrgProposalRow` | 400 |
+| GET | `/api/org/dashboard` | PARTNER | `year` | 200 `OrgDashboardResponse` | ❌ **no implementado** |
+
+> **Barrera de datos personales · `B1-19`.** Todas estas rutas resuelven el `partnerId` **desde la sesión, nunca desde un parámetro**. Y **ninguno** de sus DTO expone nombres, correos, departamentos ni horas individuales de empleados. Ni uno.
+
+```
+OrgActivityRow {
+  id, title, line, mode, location,
+  startDate, endDate, registrationDeadline, hours,
+  spots, occupiedSpots, status, reviewNote
+}
+
+OrgProposalRow {
+  id, description, suggestedLine, estimatedVolunteers,
+  scope, status, createdAt, activityId
+}
+
+CreateOrgProposalRequest { description, suggestedLine, estimatedVolunteers, scope }
+```
+
+- **`occupiedSpots` es el único dato de participación que sale del bloque**, y es un recuento. Misma definición que en el catálogo —`CONFIRMED`, `PENDING_CLOSURE` y `CLOSED`—, porque dos definiciones distintas de «plaza ocupada» acabarían enseñando números distintos para la misma actividad. **No hay `partnerName`**: la entidad ya sabe quién es.
+- **`reviewNote` va en la fila** porque no existe un estado `RETURNED`: una actividad devuelta es una que ha vuelto a `DRAFT` conservando el comentario, y el texto es lo único que la distingue de un borrador que nunca se envió.
+- **`CreateOrgProposalRequest` no lleva CIF ni contacto ni consentimiento**: la entidad sale del token y ya consintió al registrarse. La casilla solo tiene sentido en `POST /api/proposals`, donde quien propone no tiene cuenta. Las dos vías acaban en la misma tabla y en la misma bandeja.
+- **La entidad no fija el estado.** `POST` crea siempre en `DRAFT` y de ahí solo la mueve `submit`; un `status` que llegue en el cuerpo se ignora porque `CreateActivityRequest` no tiene ese campo.
+- **`PUT /api/org/activities/{id}` recibe `CreateActivityRequest`**, el mismo cuerpo que el `POST`. `UpdateActivityRequest` existe para la ruta de administración y tiene exactamente los mismos campos, así que para el frontend son intercambiables.
+
+> ❌ **`GET /api/org/dashboard` no existe** ni tampoco `OrgDashboardResponse`. El panel de impacto de la entidad sigue en mock en el frontend (`orgApi.js`), con su aviso de datos ficticios.
+
+
+### 6.10 · Cuentas de entidad · administración
+
+| Método | Ruta | Rol | Recibe | Devuelve | Errores |
+|---|---|---|---|---|---|
+| GET | `/api/admin/org-accounts` | ADMIN | `status`, `page` | 200 `Page<OrgAccountRow>` | 403 |
+| PATCH | `/api/admin/org-accounts/{id}/approve` | ADMIN | — | 200 `OrgAccountRow` | 404 |
+| PATCH | `/api/admin/org-accounts/{id}/reject` | ADMIN | — | 200 `OrgAccountRow` | 404 |
+
+> **Rechazo con CIF existente.** Si el `Partner` ya estaba `ACTIVE` porque tiene otra cuenta aprobada, rechazar la nueva solicitud cambia **únicamente ese `User`** a `REJECTED`; el `Partner` y las demás cuentas conservan su estado. Solo pasa también el `Partner` a `REJECTED` cuando era nuevo, estaba en `PENDING` y no tiene ninguna cuenta activa.
+
+### 6.11 · Dashboard de la Fundación
+
+| Método | Ruta | Rol | Recibe | Devuelve | Errores |
+|---|---|---|---|---|---|
+| GET | `/api/dashboard` | ADMIN | `year`, `line` | 200 `DashboardResponse` | 403 |
+| GET | `/api/dashboard/participations.csv` | ADMIN | `year`, `line` | 200 `text/csv` | 403 |
+| GET | `/api/dashboard/partners.csv` | ADMIN | `year` | 200 `text/csv` | 403 |
+| GET | `/api/dashboard/report.pdf` | ADMIN | `year`, `line` | 200 `application/pdf` | 403 |
+
+```
+DashboardResponse {
+  reportedHours, activeVolunteers, finishedActivities, activePartners,
+  impactVariations { reportedHours, activeVolunteers, finishedActivities, activePartners },
+  effectiveness[ { id, label, value } ],
+  participationByDepartment[ { department, participants } ],
+  participationByOrganization[ { id, label, participants } ],
+  participationByLine[ { id, label, participants } ],
+  distributionByMode[ { id, label, value } ],
+  distributionByLocation[ { id, label, value } ],
+  favoriteRanking[ { activityId, activityTitle, favoriteCount } ],
+  generatedAt
+}
+```
+
+- Se calcula sobre participaciones **cerradas** (`RegistrationStatus.CLOSED`).
+- Las cuatro cifras de cabecera cuentan cosas distintas: horas declaradas sumadas, personas distintas, actividades distintas y entidades distintas (una actividad que publica la Fundación por su cuenta no tiene entidad y no cuenta).
+- `impactVariations` es el porcentaje de variación del último trimestre con datos respecto al anterior; `0` si no hay trimestre anterior.
+- `effectiveness` y las dos `distributionBy*` llevan `value` en porcentaje de 0 a 100. Los `id` son estables y el frontend los usa como clave de pintado: `workforce-participation`, `place-occupancy`, `registration-conversion`; `in-person`, `virtual`, `hybrid`; la ubicación en minúsculas y con guiones.
+- Las tres `participationBy*` cuentan **personas distintas**, no participaciones, para que midan lo mismo. En organización y línea `id` es el valor en crudo (`VERISURE_ES`, `desoledad`) y `label` el texto legible.
+- **Los agregados por `Organization` excluyen a los usuarios con rol de entidad**, que no tienen organización, o aparecería una categoría vacía en los gráficos.
+- `favoriteRanking` son las diez actividades con más «me gusta» dentro de los filtros.
+- Las descargas necesitan `Content-Disposition` expuesto en CORS. `participations.csv` lleva una fila por participación cerrada con identificador seudonimizado (`P-<id>`), sin nombre ni correo; `partners.csv`, una fila por entidad con sus actividades y horas. Los dos con BOM UTF-8 y `;`.
