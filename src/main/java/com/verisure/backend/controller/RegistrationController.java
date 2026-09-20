@@ -53,7 +53,8 @@ public class RegistrationController {
     private final NotificationService notificationService;
 
     /**
-     * Solicita plaza: crea la inscripción en {@code WAITLISTED}.
+     * Solicita plaza: crea la inscripción en {@code WAITLISTED} y avisa a la
+     * persona de que su solicitud está en cola.
      *
      * <p>Que la actividad esté llena o vacía no importa: la decisión es de la
      * administradora.
@@ -66,6 +67,8 @@ public class RegistrationController {
 
         RegistrationResponse body = spotService.register(
                 request.activityId(), authentication.getName());
+
+        notificationService.notifyRegistrationWaitlisted(body.id());
 
         return ResponseEntity.status(HttpStatus.CREATED).body(body);
     }
@@ -82,14 +85,15 @@ public class RegistrationController {
     }
 
     /**
-     * Contadores del tablero: confirmadas, en cola y sin revisar.
+     * Contadores del tablero: confirmadas, en cola y sin revisar. Sin
+     * {@code activityId}, de todas las actividades.
      *
      * <p>Van en su propia ruta porque el contrato fija la del tablero como
      * {@code Page<RegistrationRow>}, y ahí no caben.
      */
     @GetMapping("/api/admin/registrations/counts")
     @PreAuthorize("hasRole('ADMIN')")
-    public RegistrationCounts getCounts(@RequestParam Long activityId) {
+    public RegistrationCounts getCounts(@RequestParam(required = false) Long activityId) {
         return registrationService.getCounts(activityId);
     }
 

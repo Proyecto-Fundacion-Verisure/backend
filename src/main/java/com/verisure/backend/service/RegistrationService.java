@@ -51,7 +51,7 @@ public interface RegistrationService {
                                             RegistrationStatus status,
                                             Pageable pageable);
 
-    /** Confirmadas, en cola y sin revisar de una actividad, para el tablero. */
+    /** Confirmadas, en cola y sin revisar para el tablero; sin actividad, de todas. */
     RegistrationCounts getCounts(Long activityId);
 
     /**
