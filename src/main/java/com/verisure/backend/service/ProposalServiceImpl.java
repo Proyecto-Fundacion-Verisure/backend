@@ -1,5 +1,6 @@
 package com.verisure.backend.service;
 
+import java.time.Instant;
 import java.time.LocalDate;
 
 import org.springframework.data.domain.Page;
@@ -8,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.verisure.backend.dto.activity.ActivityResponse;
+import com.verisure.backend.dto.proposal.CreateProposalRequest;
 import com.verisure.backend.dto.proposal.ProposalDetailResponse;
 import com.verisure.backend.dto.proposal.ProposalRow;
 import com.verisure.backend.entity.Activity;
@@ -41,6 +43,39 @@ public class ProposalServiceImpl implements ProposalService {
     private final ProposalRepository proposalRepository;
     private final ActivityRepository activityRepository;
     private final ActivityMapper activityMapper;
+
+    /** {@inheritDoc} */
+    @Override
+    @Transactional
+    public ProposalRow create(CreateProposalRequest request) {
+        Instant now = Instant.now();
+        String line = request.line() != null ? request.line().trim() : "";
+
+        Proposal proposal = new Proposal();
+        proposal.setApplicantName(request.organizationName().trim());
+        proposal.setApplicantCif(request.cif().trim().toUpperCase());
+        proposal.setContactName(request.contactName().trim());
+        proposal.setContactEmail(request.email().trim());
+        proposal.setContactPhone(request.phone().trim());
+        proposal.setDescription(request.description().trim());
+        proposal.setSuggestedLine(line.isEmpty() ? null : line);
+        // Opcional en el formulario, pero la columna no admite nulo: 0 es «sin indicar».
+        proposal.setEstimatedVolunteers(request.estimatedVolunteers() != null ? request.estimatedVolunteers() : 0);
+        proposal.setStatus(ProposalStatus.NEW);
+        proposal.setConsentAt(now);
+        proposal.setCreatedAt(now);
+
+        Proposal saved = proposalRepository.save(proposal);
+        return new ProposalRow(
+                saved.getId(),
+                saved.getApplicantName(),
+                saved.getSuggestedLine(),
+                saved.getEstimatedVolunteers(),
+                saved.getScope(),
+                saved.getStatus(),
+                saved.getCreatedAt(),
+                null);
+    }
 
     /** {@inheritDoc} */
     @Override
@@ -82,15 +117,16 @@ public class ProposalServiceImpl implements ProposalService {
     /**
      * La ficha, con los datos de la entidad resueltos aparte.
      *
-     * <p>Una propuesta pública no tiene entidad detrás, así que el nombre y los
-     * tres datos de contacto salen nulos.
+     * <p>Una propuesta pública no tiene entidad detrás: el nombre, el CIF y el
+     * contacto son los que escribió quien la envió.
      */
     private ProposalDetailResponse toDetail(Proposal proposal) {
         Partner partner = proposal.getPartner();
-        String partnerName = partner != null ? partner.getName() : null;
-        String contactName = partner != null ? partner.getContactName() : null;
-        String email = partner != null ? partner.getEmail() : null;
-        String phone = partner != null ? partner.getPhone() : null;
+        String partnerName = partner != null ? partner.getName() : proposal.getApplicantName();
+        String cif = partner != null ? partner.getCif() : proposal.getApplicantCif();
+        String contactName = partner != null ? partner.getContactName() : proposal.getContactName();
+        String email = partner != null ? partner.getEmail() : proposal.getContactEmail();
+        String phone = partner != null ? partner.getPhone() : proposal.getContactPhone();
 
         Activity activity = proposal.getActivity();
         Long activityId = activity != null ? activity.getId() : null;
@@ -108,7 +144,8 @@ public class ProposalServiceImpl implements ProposalService {
                 contactName,
                 email,
                 phone,
-                proposal.getConsentAt());
+                proposal.getConsentAt(),
+                cif);
     }
 
     /**
@@ -126,7 +163,7 @@ public class ProposalServiceImpl implements ProposalService {
         String line = suggestedLine != null ? suggestedLine : UNDEFINED_LINE;
 
         Activity activity = new Activity();
-        activity.setTitle(titleFor(partner));
+        activity.setTitle(titleFor(partner != null ? partner.getName() : proposal.getApplicantName()));
         activity.setDescription(proposal.getDescription());
         activity.setLine(line);
         activity.setMode(DEFAULT_MODE);
@@ -142,11 +179,11 @@ public class ProposalServiceImpl implements ProposalService {
     }
 
     /** El título provisional dice de quién es la propuesta, que es lo único que se sabe. */
-    private String titleFor(Partner partner) {
-        if (partner == null) {
+    private String titleFor(String proposerName) {
+        if (proposerName == null) {
             return "Propuesta sin entidad";
         }
-        String title = "Propuesta de " + partner.getName();
+        String title = "Propuesta de " + proposerName;
 
         // El nombre de la entidad admite 150 caracteres, así que sin recorte un
         // nombre largo tumba el insert.

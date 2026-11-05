@@ -54,6 +54,23 @@ public class Proposal {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
+    // Quien propone desde el formulario público no tiene entidad de la que sacar
+    // estos datos: se guardan aquí. Nulos en las propuestas con entidad detrás.
+    @Column(name = "applicant_name", length = 150)
+    private String applicantName;
+
+    @Column(name = "applicant_cif", length = 9)
+    private String applicantCif;
+
+    @Column(name = "contact_name", length = 120)
+    private String contactName;
+
+    @Column(name = "contact_email", length = 150)
+    private String contactEmail;
+
+    @Column(name = "contact_phone", length = 20)
+    private String contactPhone;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "partner_id", nullable = true, referencedColumnName = "id")
     private Partner partner;

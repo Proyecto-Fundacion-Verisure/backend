@@ -11,9 +11,9 @@ import com.verisure.backend.entity.enums.ProposalStatus;
  * actividad», aceptada lleva a la actividad que salió de ella y rechazada no
  * ofrece ninguna acción.
  *
- * <p>{@code partnerName} es nulo cuando la propuesta llegó por el formulario
- * público de una organización sin cuenta, y {@code activityId} solo tiene valor
- * en las aceptadas.
+ * <p>{@code partnerName} es la entidad o, en el formulario público, el nombre que
+ * escribió la organización sin cuenta. {@code activityId} solo tiene valor en las
+ * aceptadas.
  *
  * <p>{@code scope} son personas beneficiarias, no ámbito geográfico.
  */

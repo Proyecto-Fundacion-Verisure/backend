@@ -8,8 +8,8 @@ import com.verisure.backend.entity.enums.ProposalStatus;
  * La ficha de una propuesta: la fila de la bandeja más lo que hace falta para
  * decidirla y para poder contestar a quien la envió.
  *
- * <p>Los tres datos de contacto salen de la entidad, así que van vacíos en las
- * propuestas públicas que todavía no tienen una detrás.
+ * <p>El nombre, el CIF y el contacto salen de la entidad o, en las propuestas del
+ * formulario público, de lo que escribió quien la envió.
  */
 public record ProposalDetailResponse(
         Long id,
@@ -24,5 +24,6 @@ public record ProposalDetailResponse(
         String contactName,
         String email,
         String phone,
-        Instant consentAt) {
+        Instant consentAt,
+        String cif) {
 }

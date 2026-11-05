@@ -5,6 +5,7 @@ import org.springframework.data.domain.Pageable;
 
 import com.verisure.backend.dto.activity.ActivityResponse;
 import com.verisure.backend.dto.proposal.ProposalDetailResponse;
+import com.verisure.backend.dto.proposal.CreateProposalRequest;
 import com.verisure.backend.dto.proposal.ProposalRow;
 import com.verisure.backend.entity.enums.ProposalStatus;
 
@@ -17,6 +18,9 @@ import com.verisure.backend.entity.enums.ProposalStatus;
  * <p>Dueña: BE3 · Tarea: B2-07.
  */
 public interface ProposalService {
+
+    /** Guarda lo que envía una organización sin cuenta desde el formulario público. */
+    ProposalRow create(CreateProposalRequest request);
 
     /** Una página de la bandeja. El estado es opcional. */
     Page<ProposalRow> list(ProposalStatus status, Pageable pageable);
