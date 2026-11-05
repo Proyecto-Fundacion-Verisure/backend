@@ -190,6 +190,12 @@ public interface ActivityRepository extends JpaRepository<Activity, Long>{
      * una actividad que publica la Fundación por su cuenta no tiene entidad detrás,
      * y con un {@code join} interno desaparecería del catálogo. {@code from} y
      * {@code to} acotan la fecha de inicio, extremos incluidos.
+     *
+     * <p>Primero lo que aún se puede pedir: abiertas, completas con lista de espera,
+     * con el plazo vencido, en curso y finalizadas. Dentro de cada grupo, por fecha de
+     * inicio, salvo las finalizadas, que van de la más reciente a la más antigua. El
+     * orden va aquí y no en el frontend para que valga entre páginas. El día del plazo
+     * aún admite inscripciones, igual que en {@code SpotServiceImpl}.
      */
     @Query(value = """
             select new com.verisure.backend.repository.projection.ActivityCatalogRow(
@@ -202,6 +208,22 @@ public interface ActivityRepository extends JpaRepository<Activity, Long>{
               and (:mode is null or a.mode = :mode)
               and (cast(:from as localdate) is null or a.startDate >= :from)
               and (cast(:to as localdate) is null or a.startDate <= :to)
+            order by
+                case
+                    when a.status = com.verisure.backend.entity.enums.ActivityStatus.PUBLISHED
+                        and a.registrationDeadline >= :today then 0
+                    when a.status = com.verisure.backend.entity.enums.ActivityStatus.FULL
+                        and a.registrationDeadline >= :today then 1
+                    when a.status in (
+                        com.verisure.backend.entity.enums.ActivityStatus.PUBLISHED,
+                        com.verisure.backend.entity.enums.ActivityStatus.FULL) then 2
+                    when a.status = com.verisure.backend.entity.enums.ActivityStatus.IN_PROGRESS then 3
+                    else 4
+                end,
+                case when a.status = com.verisure.backend.entity.enums.ActivityStatus.FINISHED
+                    then a.startDate end desc,
+                a.startDate,
+                a.id
             """,
             countQuery = """
             select count(a.id)
@@ -218,6 +240,7 @@ public interface ActivityRepository extends JpaRepository<Activity, Long>{
             @Param("mode") String mode,
             @Param("from") LocalDate from,
             @Param("to") LocalDate to,
+            @Param("today") LocalDate today,
             Pageable pageable);
 
     /**
