@@ -1,5 +1,6 @@
 package com.verisure.backend.service;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -58,6 +59,7 @@ public class ActivityCatalogServiceImpl implements ActivityCatalogService {
         Page<ActivityCatalogRow> page = activityRepository.findCatalog(
                 VISIBLE_STATUSES,
                 filters.line(), filters.mode(), filters.from(), filters.to(),
+                LocalDate.now(),
                 pageable);
 
         // Dos consultas para la página entera y no dos por tarjeta: es lo que

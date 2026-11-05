@@ -4,7 +4,6 @@ import java.time.LocalDate;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.Authentication;
@@ -43,9 +42,9 @@ public class ActivityCatalogController {
     /**
      * Una página del catálogo, con los cuatro filtros opcionales.
      *
-     * <p>El orden por defecto —fecha de inicio, desempatando por identificador—
-     * no es un adorno: sin orden estable, al pasar de página la misma actividad
-     * puede salir dos veces mientras otra no sale nunca.
+     * <p>El orden lo fija la consulta ({@code findCatalog}): primero lo que aún se
+     * puede pedir, y siempre estable, porque sin eso al pasar de página la misma
+     * actividad puede salir dos veces mientras otra no sale nunca.
      */
     @GetMapping
     public Page<ActivityCardResponse> list(
@@ -53,7 +52,7 @@ public class ActivityCatalogController {
             @RequestParam(required = false) String mode,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
-            @PageableDefault(sort = {"startDate", "id"}, direction = Sort.Direction.ASC) Pageable pageable,
+            @PageableDefault Pageable pageable,
             Authentication authentication) {
 
         CatalogFilters filters = new CatalogFilters(line, mode, from, to);

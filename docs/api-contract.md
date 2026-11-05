@@ -315,6 +315,8 @@ UserResponse { id, name, email, role, department?, organization? }
 
 **Los filtros de la lista.** `line`, `mode`, `from` y `to` son opcionales y se combinan con Y: los que no llegan no filtran nada. `from` y `to` acotan la **fecha de inicio**, extremos incluidos. La lista muestra los mismos cuatro estados visibles que la ficha.
 
+**El orden de la lista.** Lo fija el servidor: inscripción abierta, completas con el plazo vigente, plazo vencido sin empezar, en curso y finalizadas. Dentro de cada grupo van por fecha de inicio, salvo las finalizadas, de la más reciente a la más antigua.
+
 **Los valores de `line` y `mode`.** No son enumerados en la base —las dos columnas son texto—, pero el conjunto es cerrado y frontend filtra por él, así que viajan siempre así:
 
 | Campo | Valores |
