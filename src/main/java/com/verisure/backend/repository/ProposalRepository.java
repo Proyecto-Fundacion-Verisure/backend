@@ -25,7 +25,7 @@ public interface ProposalRepository extends JpaRepository<Proposal, Long>{
      */
     @Query(value = """
             select new com.verisure.backend.dto.proposal.ProposalRow(
-                p.id, pa.name, p.suggestedLine, p.estimatedVolunteers,
+                p.id, coalesce(pa.name, p.applicantName), p.suggestedLine, p.estimatedVolunteers,
                 p.scope, p.status, p.createdAt, a.id)
             from Proposal p
             left join p.partner pa

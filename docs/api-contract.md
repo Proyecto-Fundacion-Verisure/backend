@@ -280,7 +280,7 @@ El mensaje idéntico para credenciales incorrectas y correo inexistente es delib
 
 ## 6 · Endpoints
 
-53 endpoints en once bloques. **51 están implementados**; los dos que faltan —`POST /api/proposals` y `GET /api/org/dashboard`— están marcados en su bloque y el frontend los sirve desde un mock.
+53 endpoints en once bloques. **52 están implementados**; el que falta —`GET /api/org/dashboard`— está marcado en su bloque y el frontend lo sirve desde un mock.
 
 ### 6.1 · Autenticación
 
@@ -393,7 +393,7 @@ quiere, encaja como botón de mantenimiento en el panel de administración.
 
 | Método | Ruta | Rol | Recibe | Devuelve | Errores |
 |---|---|---|---|---|---|
-| POST | `/api/proposals` | **público** | `CreateProposalRequest` | **201** | 400 · ❌ **no implementado** |
+| POST | `/api/proposals` | **público** | `CreateProposalRequest` | **201** `ProposalRow` | 400 |
 | GET | `/api/admin/proposals` | ADMIN | `status`, `page` | 200 `Page<ProposalRow>` | 403 |
 | GET | `/api/admin/proposals/{id}` | ADMIN | — | 200 `ProposalDetailResponse` | 403 · 404 |
 | POST | `/api/admin/proposals/{id}/accept` | ADMIN | — | **201** `ActivityResponse` | 409 `PROPOSAL_ALREADY_DECIDED` |
@@ -401,7 +401,14 @@ quiere, encaja como botón de mantenimiento en el panel de administración.
 
 Aceptar devuelve **201** y no 200 porque crea una actividad nueva.
 
-> ❌ **`POST /api/proposals` no tiene controlador.** La cadena de seguridad lo abre sin token, pero la ruta responde 404. El formulario público de la landing sigue en mock en el frontend (`proposalsApi.js`). Cuando se implemente, `Proposal` ya admite `partner` nulo con los datos de contacto en la propia fila, así que el modelo no cambia.
+`Proposal` admite `partner` nulo: en las que llegan por el formulario público, el nombre, el CIF y el contacto se guardan en la propia fila.
+
+```
+CreateProposalRequest {
+  organizationName, cif, contactName, email, phone, description, consent (true),
+  estimatedVolunteers?, line?
+}
+```
 
 ```
 ProposalRow {
@@ -411,11 +418,11 @@ ProposalRow {
 
 ProposalDetailResponse {
   ...todo lo de la fila, y además:
-  description, contactName, email, phone, consentAt
+  description, contactName, email, phone, consentAt, cif
 }
 ```
 
-- **`partnerName` y los tres datos de contacto son nulables.** `POST /api/proposals` es público, así que una organización sin cuenta puede proponer y la propuesta se queda sin entidad detrás. La bandeja tiene que pintar esa fila igual, con los huecos vacíos.
+- **`partnerName`, `cif` y los tres datos de contacto salen de la entidad o de lo que escribió quien propuso.** `POST /api/proposals` es público, así que una organización sin cuenta puede proponer sin entidad detrás. Siguen siendo nulables en las propuestas antiguas sin esos datos.
 - **`activityId` es nulable** y solo tiene valor en las `ACCEPTED`: es lo que el frontend necesita para el botón «Ver actividad».
 - `scope` son **personas beneficiarias**, no ámbito geográfico. Va en paralelo a `estimatedVolunteers`, que cuenta a quienes participan.
 - **Tres estados y nada más.** Una propuesta nace `NEW` y ahí se queda hasta que la administradora decide: no hay estado «leída», porque abrirla no aporta información que nadie vaya a usar.
