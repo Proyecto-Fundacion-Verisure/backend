@@ -83,6 +83,9 @@ public class SpringConfig {
                         // que no puede llevar cabecera: por eso son públicas en
                         // lectura. La protección es el nombre, un UUID del servidor.
                         .requestMatchers(GET, "/uploads/**").permitAll()
+                        // Documentación de la API: describe el contrato, no datos.
+                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html")
+                        .permitAll()
 
                         // Las rutas que sirven a dos roles llegan aquí: quién
                         // puede lo decide el servicio con NOT_OWNER.
