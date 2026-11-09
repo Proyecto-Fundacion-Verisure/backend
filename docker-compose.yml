@@ -1,0 +1,41 @@
+# Arranque completo en un comando: base de datos y API.
+#
+#   docker compose up --build
+#
+# La API queda en http://localhost:8080 y Swagger en /swagger-ui.html.
+# Los seeders cargan los datos demo fuera del perfil `prod`; son idempotentes.
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: verisure
+      POSTGRES_USER: verisure
+      POSTGRES_PASSWORD: verisure
+    ports:
+      - '5432:5432'
+    volumes:
+      - verisure-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U verisure -d verisure']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/verisure
+      DB_USER: verisure
+      DB_PASSWORD: verisure
+      # Solo para la demo local: en un despliegue real va en el gestor de secretos.
+      JWT_SECRET: clave-de-demo-cambiala-antes-de-desplegar-0123456789abcdef
+      APP_CORS_ALLOWED_ORIGIN: http://localhost:5173
+      MAIL_HOST: ''
+    ports:
+      - '8080:8080'
+
+volumes:
+  verisure-db:
