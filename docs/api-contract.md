@@ -280,7 +280,7 @@ El mensaje idéntico para credenciales incorrectas y correo inexistente es delib
 
 ## 6 · Endpoints
 
-53 endpoints en once bloques. **52 están implementados**; el que falta —`GET /api/org/dashboard`— está marcado en su bloque y el frontend lo sirve desde un mock.
+53 endpoints en once bloques. **Los 53 están implementados**; ninguno se sirve ya desde un mock.
 
 ### 6.1 · Autenticación
 
@@ -567,7 +567,7 @@ ActivityClosureResponse  { activityId, collaborationRating, closingNotes, lesson
 | PATCH | `/api/org/activities/{id}/submit` | PARTNER | — | 200 `OrgActivityRow` | 409 `ACTIVITY_NOT_EDITABLE` |
 | GET | `/api/org/proposals` | PARTNER | `page` | 200 `Page<OrgProposalRow>` | 403 |
 | POST | `/api/org/proposals` | PARTNER | `CreateOrgProposalRequest` | **201** `OrgProposalRow` | 400 |
-| GET | `/api/org/dashboard` | PARTNER | `year` | 200 `OrgDashboardResponse` | ❌ **no implementado** |
+| GET | `/api/org/dashboard` | PARTNER | `year` | 200 `OrgDashboardResponse` | 403 |
 
 > **Barrera de datos personales · `B1-19`.** Todas estas rutas resuelven el `partnerId` **desde la sesión, nunca desde un parámetro**. Y **ninguno** de sus DTO expone nombres, correos, departamentos ni horas individuales de empleados. Ni uno.
 
@@ -584,6 +584,15 @@ OrgProposalRow {
 }
 
 CreateOrgProposalRequest { description, suggestedLine, estimatedVolunteers, scope }
+
+OrgDashboardResponse {
+  receivedHours, activities, distinctVolunteers, benefitedPeople,
+  variations: {
+    receivedHours, activities, distinctVolunteers, benefitedPeople
+  },
+  evolutionByYear: [ { year, receivedHours } ],
+  distributionByLine: [ { id, label, value } ]
+}
 ```
 
 - **`occupiedSpots` es el único dato de participación que sale del bloque**, y es un recuento. Misma definición que en el catálogo —`CONFIRMED`, `PENDING_CLOSURE` y `CLOSED`—, porque dos definiciones distintas de «plaza ocupada» acabarían enseñando números distintos para la misma actividad. **No hay `partnerName`**: la entidad ya sabe quién es.
@@ -592,7 +601,13 @@ CreateOrgProposalRequest { description, suggestedLine, estimatedVolunteers, scop
 - **La entidad no fija el estado.** `POST` crea siempre en `DRAFT` y de ahí solo la mueve `submit`; un `status` que llegue en el cuerpo se ignora porque `CreateActivityRequest` no tiene ese campo.
 - **`PUT /api/org/activities/{id}` recibe `CreateActivityRequest`**, el mismo cuerpo que el `POST`. `UpdateActivityRequest` existe para la ruta de administración y tiene exactamente los mismos campos, así que para el frontend son intercambiables.
 
-> ❌ **`GET /api/org/dashboard` no existe** ni tampoco `OrgDashboardResponse`. El panel de impacto de la entidad sigue en mock en el frontend (`orgApi.js`), con su aviso de datos ficticios.
+**Panel de impacto de la entidad · `GET /api/org/dashboard`.** Sale de las mismas participaciones `CLOSED` que el dashboard de la Fundación, filtradas por la entidad de la sesión:
+
+- **`receivedHours`** suma `actualHours` de los cierres; **`activities`** y **`distinctVolunteers`** cuentan actividades y personas distintas, igual que en `DashboardResponse`. Si llega `year`, se filtra por el año de `activity.endDate`.
+- **`benefitedPeople`** es la suma de `scope` de las propuestas **`ACCEPTED`** de esa entidad cuya actividad terminó en ese año. Es gente alcanzada, no voluntariado: por eso no se puede sacar de los cierres de participación.
+- **`variations`** compara el último trimestre con datos contra el anterior, como el dashboard de la Fundación; sin trimestre previo la variación es `0`, no `null`.
+- **`evolutionByYear`** y **`distributionByLine`** no dependen del filtro de año: el primero es la serie histórica completa y el segundo reparte las horas del periodo por línea de acción.
+- **Ningún campo identifica a una persona.** Ni nombres, ni correos, ni horas individuales: la barrera de `B1-19` vale igual aquí.
 
 
 ### 6.10 · Cuentas de entidad · administración

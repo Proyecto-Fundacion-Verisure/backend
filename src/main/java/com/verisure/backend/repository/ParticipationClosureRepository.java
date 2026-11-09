@@ -95,4 +95,31 @@ public interface ParticipationClosureRepository extends JpaRepository<Participat
             """)
     List<PartnerDashboardRow> findPartnersForDashboard(@Param("year") Integer year);
 
+    /**
+     * Los cierres de participación de una entidad, para su panel · {@code B2-15}.
+     *
+     * <p>Sin filtro de año a propósito: la misma consulta alimenta los KPIs del
+     * periodo, la comparación con el trimestre anterior y la serie histórica
+     * completa. El volumen de una entidad es pequeño y así no se piden tres
+     * veces los mismos datos.
+     *
+     * <p>El {@code join} a {@code partner} es interno porque aquí siempre hay
+     * entidad: el {@code partnerId} sale de la sesión.
+     */
+    @Query("""
+            select new com.verisure.backend.repository.projection.DashboardClosedRow(
+                pc.id, a.id, a.title, r.user.id, u.department,
+                cast(u.organization as string), a.line, a.mode, a.location,
+                pc.actualHours, a.endDate, p.id, p.name)
+            from ParticipationClosure pc
+              join pc.registration r
+              join r.user u
+              join r.activity a
+              join a.partner p
+            where r.status = com.verisure.backend.entity.enums.RegistrationStatus.CLOSED
+              and p.id = :partnerId
+            order by a.endDate
+            """)
+    List<DashboardClosedRow> findOrgDashboardData(@Param("partnerId") Long partnerId);
+
 }

@@ -1,5 +1,6 @@
 package com.verisure.backend.repository;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.domain.Page;
@@ -10,10 +11,30 @@ import org.springframework.data.repository.query.Param;
 
 import com.verisure.backend.dto.org.OrgProposalRow;
 import com.verisure.backend.dto.proposal.ProposalRow;
+import com.verisure.backend.repository.projection.OrgProposalScopeRow;
 import com.verisure.backend.entity.Proposal;
 import com.verisure.backend.entity.enums.ProposalStatus;
 
 public interface ProposalRepository extends JpaRepository<Proposal, Long>{
+
+    /**
+     * Alcance declarado por una entidad en sus propuestas aceptadas · {@code B2-15}.
+     *
+     * <p>Una fila por propuesta con su `scope` y el día en que terminó la
+     * actividad. Es el único dato de personas beneficiarias que existe: los
+     * cierres de participación cuentan horas de voluntariado, no gente
+     * alcanzada. Sin filtro de año, para poder sumar el periodo y comparar
+     * trimestres con la misma consulta.
+     */
+    @Query("""
+            select new com.verisure.backend.repository.projection.OrgProposalScopeRow(
+                p.scope, a.endDate)
+            from Proposal p
+              join p.activity a
+            where p.status = com.verisure.backend.entity.enums.ProposalStatus.ACCEPTED
+              and a.partner.id = :partnerId
+            """)
+    List<OrgProposalScopeRow> findAcceptedScopesByPartner(@Param("partnerId") Long partnerId);
 
     /**
      * Una página de la bandeja, filtrada por estado si llega.
