@@ -605,7 +605,7 @@ OrgDashboardResponse {
 
 - **`receivedHours`** suma `actualHours` de los cierres; **`activities`** y **`distinctVolunteers`** cuentan actividades y personas distintas, igual que en `DashboardResponse`. Si llega `year`, se filtra por el año de `activity.endDate`.
 - **`benefitedPeople`** es la suma de `scope` de las propuestas **`ACCEPTED`** de esa entidad cuya actividad terminó en ese año. Es gente alcanzada, no voluntariado: por eso no se puede sacar de los cierres de participación.
-- **`variations`** compara el último año con datos contra el anterior; sin año previo la variación es `0`, no `null`. Es año y no trimestre porque la serie de la entidad es anual y la cabecera lo rotula «respecto al año anterior».
+- **`variations`** compara el último trimestre con datos contra el anterior, como el dashboard de la Fundación; sin trimestre previo la variación es `0`, no `null`.
 - **`evolutionByYear`** y **`distributionByLine`** no dependen del filtro de año: el primero es la serie histórica completa y el segundo reparte las horas del periodo por línea de acción.
 - **Ningún campo identifica a una persona.** Ni nombres, ni correos, ni horas individuales: la barrera de `B1-19` vale igual aquí.
 
