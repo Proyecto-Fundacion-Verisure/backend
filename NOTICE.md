@@ -9,9 +9,12 @@ Fundación en producción.
 
 Código desarrollado por:
 
-- Elena Almansa · [@elenaalmansacampos](https://github.com/elenaalmansacampos)
-- Fabiana Leonardo · [@fabileoruf](https://github.com/fabileoruf)
-- Ivanna Caraccio · [@IvannaRCA](https://github.com/IvannaRCA)
+- Elena Almansa · [@elenaalmansacampos](https://github.com/elenaalmansacampos) · Frontend
+- Fabiana Leonardo · [@fabileoruf](https://github.com/fabileoruf) · Frontend
+- Ivanna Caraccio · [@IvannaRCA](https://github.com/IvannaRCA) · Frontend
+- Andrea Tapia · [@atapiamallea](https://github.com/atapiamallea) · Backend
+- Chiara Di Maio · [@chdimaio](https://github.com/chdimaio) · Backend
+- Rosa Vaillant · [@rosana50factoria](https://github.com/rosana50factoria) · Backend
 
 Con la Fundación Verisure como cliente del ejercicio y origen de los requisitos funcionales.
 
