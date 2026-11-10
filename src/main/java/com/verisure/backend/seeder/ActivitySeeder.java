@@ -21,9 +21,13 @@ import com.verisure.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 
 /**
- * Siembra las 13 actividades: al menos tres por cada línea de acción, los
- * siete {@code ActivityStatus} representados y una devuelta a borrador
- * con nota de revisión.
+ * Siembra 20 actividades: trece del curso actual y siete históricas de 2024 y
+ * 2025. Al menos tres por cada línea de acción, los siete {@code ActivityStatus}
+ * representados y una devuelta a borrador con nota de revisión.
+ *
+ * <p>Las siete históricas existen por una razón concreta: sin actividades con
+ * fecha de fin en años anteriores, la evolución por año del panel de la entidad
+ * tendría un solo punto y las variaciones año contra año saldrían siempre a cero.
  *
  * <p>Los valores de {@code line} y {@code mode} no son opinables: frontend
  * filtra por ellos y los tiene fijados en {@code src/constants/activityLines.js}.
@@ -70,6 +74,73 @@ public class ActivitySeeder implements CommandLineRunner {
 
         LocalDate today = LocalDate.now();
         List<Activity> activities = new ArrayList<>();
+
+        // ── Histórico · 2023 ─────────────────────────────────────────────────────
+        // Tres programas largos de 2023: aportan la mayor parte de las horas y
+        // alargan la serie a cuatro años.
+        activities.add(activity("Acompañamiento a mayores 2023",
+                "Visitas semanales a personas mayores durante el curso 2023.",
+                "desoledad", "PRESENCIAL", "Barcelona", 8, 20,
+                ActivityStatus.FINISHED, LocalDate.of(2023, 3, 6), LocalDate.of(2023, 3, 31),
+                LocalDate.of(2023, 2, 24), partners.get(0), admin));
+
+        activities.add(activity("Mentoría para el empleo 2023",
+                "Acompañamiento individual a personas en búsqueda de empleo.",
+                "educar", "ONLINE", null, 8, 40,
+                ActivityStatus.FINISHED, LocalDate.of(2023, 9, 18), LocalDate.of(2023, 12, 22),
+                LocalDate.of(2023, 9, 8), partners.get(2), admin));
+
+        activities.add(activity("Refuerzo escolar 2023",
+                "Apoyo escolar a menores en riesgo de exclusión durante el curso 2023.",
+                "educar", "PRESENCIAL", "Madrid", 8, 15,
+                ActivityStatus.FINISHED, LocalDate.of(2023, 10, 9), LocalDate.of(2023, 12, 1),
+                LocalDate.of(2023, 9, 29), partners.get(2), admin));
+
+        // ── Histórico · 2024 y 2025 ──────────────────────────────────────────────
+        // Existen para que la evolución por año del panel de la entidad tenga más
+        // de un punto y para que las variaciones año contra año no salgan a cero.
+        // Fechas fijas: los agregados son iguales en cualquier máquina.
+        activities.add(activity("Acompañamiento a mayores 2024",
+                "Visitas semanales a personas mayores durante el curso 2024.",
+                "desoledad", "PRESENCIAL", "Barcelona", 8, 20,
+                ActivityStatus.FINISHED, LocalDate.of(2024, 3, 4), LocalDate.of(2024, 3, 29),
+                LocalDate.of(2024, 2, 23), partners.get(0), admin));
+
+        activities.add(activity("Refuerzo escolar 2024",
+                "Apoyo escolar a menores en riesgo de exclusión durante el curso 2024.",
+                "educar", "PRESENCIAL", "Madrid", 10, 15,
+                ActivityStatus.FINISHED, LocalDate.of(2024, 10, 7), LocalDate.of(2024, 11, 29),
+                LocalDate.of(2024, 9, 27), partners.get(2), admin));
+
+        activities.add(activity("Limpieza de playas 2024",
+                "Jornada de recogida de residuos en el litoral valenciano.",
+                "medioambiente", "PRESENCIAL", "Valencia", 8, 6,
+                ActivityStatus.FINISHED, LocalDate.of(2024, 6, 8), LocalDate.of(2024, 6, 8),
+                LocalDate.of(2024, 6, 1), partners.get(5), admin));
+
+        activities.add(activity("Acompañamiento a mayores 2025",
+                "Visitas semanales a personas mayores durante el curso 2025.",
+                "desoledad", "PRESENCIAL", "Barcelona", 8, 20,
+                ActivityStatus.FINISHED, LocalDate.of(2025, 3, 3), LocalDate.of(2025, 3, 28),
+                LocalDate.of(2025, 2, 21), partners.get(0), admin));
+
+        activities.add(activity("Mentoría para el empleo 2025",
+                "Acompañamiento individual a personas en búsqueda de empleo.",
+                "educar", "ONLINE", null, 6, 40,
+                ActivityStatus.FINISHED, LocalDate.of(2025, 9, 15), LocalDate.of(2025, 12, 19),
+                LocalDate.of(2025, 9, 5), partners.get(2), admin));
+
+        activities.add(activity("Campaña contra el acoso 2025",
+                "Sensibilización en centros educativos durante el curso 2025.",
+                "acoso", "MIXTO", "Sevilla", 6, 10,
+                ActivityStatus.FINISHED, LocalDate.of(2025, 5, 5), LocalDate.of(2025, 5, 23),
+                LocalDate.of(2025, 4, 25), partners.get(3), admin));
+
+        activities.add(activity("Jornada de reforestación 2025",
+                "Plantación de especies autóctonas con voluntariado corporativo.",
+                "medioambiente", "PRESENCIAL", "Madrid", 8, 8,
+                ActivityStatus.FINISHED, LocalDate.of(2025, 11, 8), LocalDate.of(2025, 11, 8),
+                LocalDate.of(2025, 10, 31), partners.get(5), admin));
 
         // ── Pasadas · fechas fijas de 2026 ──────────────────────────────────────
         // La 1 es la que sostiene el dashboard: sus inscripciones acaban en CLOSED.

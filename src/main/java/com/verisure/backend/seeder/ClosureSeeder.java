@@ -30,7 +30,8 @@ import com.verisure.backend.service.CertificateReference;
 import lombok.RequiredArgsConstructor;
 
 /**
- * Siembra los dos closures: 7 de participación y 3 de actividad.
+ * Siembra los dos closures: participaciones y cierres de actividad del curso
+ * actual, más los de las siete actividades históricas de 2024 y 2025.
  *
  * <p>Las horas declaradas se separan a propósito de las previstas —una por
  * encima y otra por debajo— porque lo que la pantalla de participationClosure tiene que
@@ -98,6 +99,22 @@ public class ClosureSeeder implements CommandLineRunner {
                     null, LocalDate.of(2026, 4, 27)));
         }
 
+        // ── Histórico · cierres de participación de 2024 y 2025 ─────────────────
+        // Horas por tipo de programa: acompañamiento y refuerzo duran semanas; una
+        // jornada de playas o una plantación, unas horas. La variedad es lo que
+        // hace legible el reparto por línea y la serie anual del panel.
+        List<HistoricalProgram> historicos = historicalPrograms();
+
+        for (HistoricalProgram programa : historicos) {
+            List<Registration> cerradas = byActivityAndStatus(
+                    programa.title(), RegistrationStatus.CLOSED);
+            closures.addAll(participationClosures(cerradas,
+                    programa.hoursPattern(),
+                    new int[] {5, 4, 5, 4, 3, 5},
+                    "Valoración positiva del equipo y de la entidad.",
+                    "historico-" + programa.slug(), programa.closedOn()));
+        }
+
         // La referencia es CERT-año-id: necesita el id que asigna la base de
         // datos, por eso se rellena tras el save y no en el constructor-ayudante (B1-21).
         closures = participationClosureRepository.saveAll(closures);
@@ -126,7 +143,61 @@ public class ClosureSeeder implements CommandLineRunner {
                     "Pendiente de que cierren el resto de participantes.",
                     null, null));
         }
+
+        // ── Histórico · cierres de actividad de 2024 y 2025 ─────────────────────
+        for (HistoricalProgram programa : historicos) {
+            List<Registration> cerradas = byActivityAndStatus(
+                    programa.title(), RegistrationStatus.CLOSED);
+            if (cerradas.isEmpty()) {
+                continue;
+            }
+            activityClosures.add(activityClosure(cerradas.get(0).getActivity(),
+                    ActivityClosureStatus.CLOSED, 5,
+                    "Actividad cerrada y certificada.",
+                    "Repetir el programa el curso siguiente.",
+                    programa.closedOn()));
+        }
+
         activityClosureRepository.saveAll(activityClosures);
+    }
+
+    /**
+     * Programas históricos sembrados para que los dashboards tengan serie: título
+     * de la actividad, horas del primer cierre, día de cierre y el patrón de horas
+     * que se reparte entre las seis personas inscritas.
+     */
+    private List<HistoricalProgram> historicalPrograms() {
+        return List.of(
+                // 2023 · ocho personas por programa; suman 1.484 h, que llevan el
+                // total del dashboard al orden de las 2.655 h de la landing.
+                new HistoricalProgram("Acompañamiento a mayores 2023",
+                        new int[] {60, 61, 59, 60, 59, 61, 60, 60}, LocalDate.of(2023, 4, 3)),
+                new HistoricalProgram("Mentoría para el empleo 2023",
+                        new int[] {65, 66, 64, 65, 64, 66, 65, 65}, LocalDate.of(2023, 12, 27)),
+                new HistoricalProgram("Refuerzo escolar 2023",
+                        new int[] {60, 61, 59, 60, 59, 61, 60, 60}, LocalDate.of(2023, 12, 5)),
+                new HistoricalProgram("Acompañamiento a mayores 2024",
+                        new int[] {28, 30, 26, 28, 27, 29}, LocalDate.of(2024, 3, 30)),
+                new HistoricalProgram("Refuerzo escolar 2024",
+                        new int[] {36, 38, 34, 36, 35, 37}, LocalDate.of(2024, 12, 2)),
+                new HistoricalProgram("Limpieza de playas 2024",
+                        new int[] {6, 8, 4, 6, 5, 7}, LocalDate.of(2024, 6, 10)),
+                new HistoricalProgram("Acompañamiento a mayores 2025",
+                        new int[] {30, 32, 28, 30, 29, 31}, LocalDate.of(2025, 3, 31)),
+                new HistoricalProgram("Mentoría para el empleo 2025",
+                        new int[] {60, 62, 58, 60, 59, 61}, LocalDate.of(2025, 12, 22)),
+                new HistoricalProgram("Campaña contra el acoso 2025",
+                        new int[] {12, 14, 10, 12, 11, 13}, LocalDate.of(2025, 5, 26)),
+                new HistoricalProgram("Jornada de reforestación 2025",
+                        new int[] {8, 10, 6, 8, 7, 9}, LocalDate.of(2025, 11, 10)));
+    }
+
+    /** Un programa histórico con su patrón de horas y el día en que se cerró. */
+    private record HistoricalProgram(String title, int[] hoursPattern, LocalDate closedOn) {
+
+        String slug() {
+            return title.toLowerCase().replace(' ', '-');
+        }
     }
 
     /**

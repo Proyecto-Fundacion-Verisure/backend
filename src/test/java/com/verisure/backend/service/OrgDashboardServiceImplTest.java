@@ -97,13 +97,13 @@ class OrgDashboardServiceImplTest {
     }
 
     @Test
-    void comparaElUltimoTrimestreConElAnterior() {
+    void comparaElUltimoAnioConElAnterior() {
         partnerWithId(7L);
         when(participationClosureRepository.findOrgDashboardData(7L)).thenReturn(List.of(
-                row(10, 1, 10, LocalDate.of(2026, 1, 15), "educar"),
+                row(10, 1, 10, LocalDate.of(2025, 1, 15), "educar"),
                 row(11, 2, 20, LocalDate.of(2026, 4, 15), "educar")));
         when(proposalRepository.findAcceptedScopesByPartner(7L)).thenReturn(List.of(
-                scope(100, LocalDate.of(2026, 1, 15)),
+                scope(100, LocalDate.of(2025, 1, 15)),
                 scope(150, LocalDate.of(2026, 4, 15))));
 
         OrgDashboardResponse response = service.getDashboard(null, EMAIL);

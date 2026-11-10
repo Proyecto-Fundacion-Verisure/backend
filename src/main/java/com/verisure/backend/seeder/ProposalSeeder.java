@@ -55,6 +55,11 @@ public class ProposalSeeder implements CommandLineRunner {
         List<Partner> partners = partnerRepository.findAll();
         Activity beachCleanup = findActivityByTitle("Limpieza de playas");
         Activity foodBank = findActivityByTitle("Reparto del banco de alimentos");
+        // Las tres de Cáritas son las que dan «personas beneficiadas» al panel de
+        // la entidad: una por año, para que la serie y su variación tengan sentido.
+        Activity elderly2024 = findActivityByTitle("Acompañamiento a mayores 2024");
+        Activity elderly2025 = findActivityByTitle("Acompañamiento a mayores 2025");
+        Activity elderly2026 = findActivityByTitle("Acompañamiento a mayores");
 
         proposalRepository.saveAll(List.of(
                 // Propuesta pública: la envía una organización que todavía no tiene cuenta.
@@ -81,7 +86,21 @@ public class ProposalSeeder implements CommandLineRunner {
 
                 proposal("Formación a familias sobre detección temprana del acoso.",
                         8, "acoso", 90,
-                        ProposalStatus.REJECTED, partners.get(3), null, 22)));
+                        ProposalStatus.REJECTED, partners.get(3), null, 22),
+
+                // Aceptadas de Cáritas: suman 12.234 personas beneficiarias, la
+                // misma cifra que cuenta la landing, repartida en tres cursos.
+                proposal("Acompañamiento a mayores en el curso 2024.",
+                        18, "desoledad", 4200,
+                        ProposalStatus.ACCEPTED, partners.get(0), elderly2024, 26),
+
+                proposal("Acompañamiento a mayores en el curso 2025.",
+                        20, "desoledad", 5000,
+                        ProposalStatus.ACCEPTED, partners.get(0), elderly2025, 27),
+
+                proposal("Acompañamiento a mayores en el curso 2026.",
+                        16, "desoledad", 3034,
+                        ProposalStatus.ACCEPTED, partners.get(0), elderly2026, 28)));
     }
 
     private Proposal proposal(String description, int estimatedVolunteers, String suggestedLine,
