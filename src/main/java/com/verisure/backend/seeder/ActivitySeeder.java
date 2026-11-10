@@ -75,6 +75,27 @@ public class ActivitySeeder implements CommandLineRunner {
         LocalDate today = LocalDate.now();
         List<Activity> activities = new ArrayList<>();
 
+        // ── Histórico · 2023 ─────────────────────────────────────────────────────
+        // Tres programas largos de 2023: aportan la mayor parte de las horas y
+        // alargan la serie a cuatro años.
+        activities.add(activity("Acompañamiento a mayores 2023",
+                "Visitas semanales a personas mayores durante el curso 2023.",
+                "desoledad", "PRESENCIAL", "Barcelona", 8, 20,
+                ActivityStatus.FINISHED, LocalDate.of(2023, 3, 6), LocalDate.of(2023, 3, 31),
+                LocalDate.of(2023, 2, 24), partners.get(0), admin));
+
+        activities.add(activity("Mentoría para el empleo 2023",
+                "Acompañamiento individual a personas en búsqueda de empleo.",
+                "educar", "ONLINE", null, 8, 40,
+                ActivityStatus.FINISHED, LocalDate.of(2023, 9, 18), LocalDate.of(2023, 12, 22),
+                LocalDate.of(2023, 9, 8), partners.get(2), admin));
+
+        activities.add(activity("Refuerzo escolar 2023",
+                "Apoyo escolar a menores en riesgo de exclusión durante el curso 2023.",
+                "educar", "PRESENCIAL", "Madrid", 8, 15,
+                ActivityStatus.FINISHED, LocalDate.of(2023, 10, 9), LocalDate.of(2023, 12, 1),
+                LocalDate.of(2023, 9, 29), partners.get(2), admin));
+
         // ── Histórico · 2024 y 2025 ──────────────────────────────────────────────
         // Existen para que la evolución por año del panel de la entidad tenga más
         // de un punto y para que las variaciones año contra año no salgan a cero.

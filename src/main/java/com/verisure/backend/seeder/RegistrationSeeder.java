@@ -142,6 +142,22 @@ public class RegistrationSeeder implements CommandLineRunner {
             }
         }
 
+        // 2023: las ocho personas de la plantilla, porque son los programas que
+        // sostienen el volumen de horas del dashboard.
+        String[] historicas2023 = {
+                "Acompañamiento a mayores 2023",
+                "Mentoría para el empleo 2023",
+                "Refuerzo escolar 2023",
+        };
+        for (String titulo : historicas2023) {
+            Activity historica = activityByTitle(titulo);
+            for (int i = 0; i < employees.size(); i++) {
+                registrations.add(registration(historica, employees.get(i),
+                        RegistrationStatus.CLOSED, true, null, admin,
+                        historica.getStartDate().minusDays(10).plusDays(i)));
+            }
+        }
+
         registrationRepository.saveAll(registrations);
     }
 

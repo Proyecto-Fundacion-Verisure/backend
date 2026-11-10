@@ -168,6 +168,14 @@ public class ClosureSeeder implements CommandLineRunner {
      */
     private List<HistoricalProgram> historicalPrograms() {
         return List.of(
+                // 2023 · ocho personas por programa; suman 1.484 h, que llevan el
+                // total del dashboard al orden de las 2.655 h de la landing.
+                new HistoricalProgram("Acompañamiento a mayores 2023",
+                        new int[] {60, 61, 59, 60, 59, 61, 60, 60}, LocalDate.of(2023, 4, 3)),
+                new HistoricalProgram("Mentoría para el empleo 2023",
+                        new int[] {65, 66, 64, 65, 64, 66, 65, 65}, LocalDate.of(2023, 12, 27)),
+                new HistoricalProgram("Refuerzo escolar 2023",
+                        new int[] {60, 61, 59, 60, 59, 61, 60, 60}, LocalDate.of(2023, 12, 5)),
                 new HistoricalProgram("Acompañamiento a mayores 2024",
                         new int[] {28, 30, 26, 28, 27, 29}, LocalDate.of(2024, 3, 30)),
                 new HistoricalProgram("Refuerzo escolar 2024",

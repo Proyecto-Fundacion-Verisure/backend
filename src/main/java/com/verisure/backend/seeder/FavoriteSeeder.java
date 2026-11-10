@@ -38,8 +38,6 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class FavoriteSeeder implements CommandLineRunner {
 
-    private static final int HOW_MANY = 10;
-
     /** Los mismos estados que enseña el catálogo: solo ahí hay corazón que marcar. */
     private static final List<ActivityStatus> VISIBLE_STATUSES = List.of(
             ActivityStatus.PUBLISHED,
@@ -66,20 +64,17 @@ public class FavoriteSeeder implements CommandLineRunner {
                 .filter(a -> VISIBLE_STATUSES.contains(a.getStatus()))
                 .toList();
 
+        // Reparto decreciente: la primera actividad recibe a toda la plantilla y
+        // las siguientes, una persona menos. Con un favorito por actividad el
+        // ranking saldría con todas las barras al 100 % y no diría nada.
         List<Favorite> favorites = new ArrayList<>();
-        int created = 0;
-        for (int i = 0; i < employees.size() && created < HOW_MANY; i++) {
-            for (int j = 0; j < visible.size() && created < HOW_MANY; j++) {
-                // El desplazamiento reparte los favorites entre actividades distintas
-                // en vez de amontonarlos todos en la primera.
-                if ((i + j) % 2 != 0) {
-                    continue;
-                }
+        for (int j = 0; j < visible.size(); j++) {
+            int cuantos = Math.max(employees.size() - j, 1);
+            for (int i = 0; i < cuantos; i++) {
                 Favorite f = new Favorite();
                 f.setUser(employees.get(i));
                 f.setActivity(visible.get(j));
                 favorites.add(f);
-                created++;
             }
         }
 
