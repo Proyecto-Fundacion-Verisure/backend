@@ -93,8 +93,10 @@ public class ClosureSeeder implements CommandLineRunner {
                 "campana-acoso", LocalDate.of(2026, 5, 25)));
 
         // Una sola de las dos pending: la administradora ve que aún falta gente.
+        // Se cierra la ÚLTIMA a propósito: la primera es la inscripción de Ana y
+        // tiene que quedar abierta para poder enviar un cierre en la demo.
         if (!pending.isEmpty()) {
-            closures.add(participationClosure(pending.get(0), 11, 4,
+            closures.add(participationClosure(pending.get(pending.size() - 1), 11, 4,
                     "El taller se quedó algo corto de tiempo.",
                     null, LocalDate.of(2026, 4, 27)));
         }
@@ -138,7 +140,7 @@ public class ClosureSeeder implements CommandLineRunner {
         }
         if (!pending.isEmpty()) {
             // A medio rellenar: es la pantalla principal de B1-04.
-            activityClosures.add(activityClosure(pending.get(0).getActivity(),
+            activityClosures.add(activityClosure(pending.get(pending.size() - 1).getActivity(),
                     ActivityClosureStatus.DRAFT, 3,
                     "Pendiente de que cierren el resto de participantes.",
                     null, null));

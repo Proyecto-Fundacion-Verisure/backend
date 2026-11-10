@@ -72,7 +72,7 @@ public class FavoriteSeeder implements CommandLineRunner {
             int cuantos = Math.max(employees.size() - j, 1);
             for (int i = 0; i < cuantos; i++) {
                 Favorite f = new Favorite();
-                f.setUser(employees.get(i));
+                f.setUser(employees.get((inicio + i) % employees.size()));
                 f.setActivity(visible.get(j));
                 favorites.add(f);
             }
