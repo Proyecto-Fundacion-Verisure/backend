@@ -23,8 +23,9 @@ import com.verisure.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 
 /**
- * Siembra 13 registrations con los seis {@code RegistrationStatus}
- * representados.
+ * Siembra 55 registrations: trece del curso actual, con los seis
+ * {@code RegistrationStatus} representados, y cuarenta y dos cerradas repartidas
+ * entre las siete actividades históricas.
  *
  * <p>Es el seeder del que depende la demo entera: las seis registrations en
  * {@code CLOSED} —tres de «Acompañamiento a mayores» y tres de «Campaña contra el
@@ -118,6 +119,28 @@ public class RegistrationSeeder implements CommandLineRunner {
         // 1 CANCELLED · como si la hubiera cancelado cancelAllForActivity
         registrations.add(registration(selfProtection, employees.get(4), RegistrationStatus.CANCELLED,
                 true, null, admin, LocalDate.of(2026, 1, 28)));
+
+        // ── Histórico · inscripciones cerradas de 2024 y 2025 ───────────────────
+        // Seis personas por actividad: son las que alimentan las series anuales y
+        // los repartos por línea, modalidad y ubicación del dashboard. Todas en
+        // CLOSED porque es el único estado que agrega el dashboard.
+        String[][] historicas = {
+                {"Acompañamiento a mayores 2024", "2024-02-26"},
+                {"Refuerzo escolar 2024", "2024-09-30"},
+                {"Limpieza de playas 2024", "2024-06-01"},
+                {"Acompañamiento a mayores 2025", "2025-02-24"},
+                {"Mentoría para el empleo 2025", "2025-09-08"},
+                {"Campaña contra el acoso 2025", "2025-04-28"},
+                {"Jornada de reforestación 2025", "2025-11-01"},
+        };
+        for (String[] fila : historicas) {
+            Activity historica = activityByTitle(fila[0]);
+            LocalDate alta = LocalDate.parse(fila[1]);
+            for (int i = 0; i < 6; i++) {
+                registrations.add(registration(historica, employees.get(i),
+                        RegistrationStatus.CLOSED, true, null, admin, alta.plusDays(i)));
+            }
+        }
 
         registrationRepository.saveAll(registrations);
     }

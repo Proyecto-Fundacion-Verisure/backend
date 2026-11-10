@@ -111,24 +111,29 @@ public class OrgDashboardServiceImpl implements OrgDashboardService {
                 .sum();
     }
 
-    // ── Variaciones por trimestre ───────────────────────────────────────────
+    // ── Variaciones año contra año ──────────────────────────────────────────
 
+    /**
+     * Compara el último año con datos contra el inmediatamente anterior.
+     *
+     * <p>Es año y no trimestre: el panel de la entidad se lee por años (su serie
+     * es anual) y la cabecera lo rotula «respecto al año anterior».
+     */
     private OrgImpactVariations variations(List<DashboardClosedRow> rows,
                                           List<OrgProposalScopeRow> scopes) {
-        Map<Quarter, List<DashboardClosedRow>> byQuarter = rows.stream()
+        Map<Integer, List<DashboardClosedRow>> byYear = rows.stream()
                 .filter(row -> row.endDate() != null)
-                .collect(Collectors.groupingBy(row -> Quarter.of(row.endDate())));
+                .collect(Collectors.groupingBy(row -> row.endDate().getYear()));
 
-        if (byQuarter.isEmpty()) {
+        if (byYear.isEmpty()) {
             return OrgImpactVariations.empty();
         }
 
-        Quarter current = byQuarter.keySet().stream().max(Comparator.naturalOrder()).orElseThrow();
-        List<DashboardClosedRow> currentRows = byQuarter.get(current);
-        List<DashboardClosedRow> previousRows = byQuarter.getOrDefault(current.previous(), List.of());
-
-        List<OrgProposalScopeRow> currentScopes = scopesOfQuarter(scopes, current);
-        List<OrgProposalScopeRow> previousScopes = scopesOfQuarter(scopes, current.previous());
+        int currentYear = byYear.keySet().stream().max(Comparator.naturalOrder()).orElseThrow();
+        List<DashboardClosedRow> currentRows = byYear.get(currentYear);
+        List<DashboardClosedRow> previousRows = byYear.getOrDefault(currentYear - 1, List.of());
+        List<OrgProposalScopeRow> currentScopes = scopesOfYear(scopes, currentYear);
+        List<OrgProposalScopeRow> previousScopes = scopesOfYear(scopes, currentYear - 1);
 
         return new OrgImpactVariations(
                 variation(receivedHours(currentRows), receivedHours(previousRows)),
@@ -137,41 +142,11 @@ public class OrgDashboardServiceImpl implements OrgDashboardService {
                 variation(benefitedPeople(currentScopes), benefitedPeople(previousScopes)));
     }
 
-    private List<OrgProposalScopeRow> scopesOfQuarter(List<OrgProposalScopeRow> scopes,
-                                                     Quarter quarter) {
-        return scopes.stream()
-                .filter(row -> row.endDate() != null && Quarter.of(row.endDate()).equals(quarter))
-                .toList();
-    }
-
     private double variation(double current, double previous) {
         if (previous <= 0) {
             return 0;
         }
         return (current - previous) / previous * 100;
-    }
-
-    private record Quarter(int year, int quarter) implements Comparable<Quarter> {
-
-        static Quarter of(LocalDate date) {
-            return new Quarter(date.getYear(), ((date.getMonthValue() - 1) / 3) + 1);
-        }
-
-        Quarter previous() {
-            int previousQuarter = quarter - 1;
-            int previousYear = year;
-            if (previousQuarter == 0) {
-                previousQuarter = 4;
-                previousYear -= 1;
-            }
-            return new Quarter(previousYear, previousQuarter);
-        }
-
-        @Override
-        public int compareTo(Quarter other) {
-            int byYear = Integer.compare(year, other.year);
-            return byYear != 0 ? byYear : Integer.compare(quarter, other.quarter);
-        }
     }
 
     // ── Series ──────────────────────────────────────────────────────────────
